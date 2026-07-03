@@ -1,0 +1,93 @@
+name: Release macOS App & Update Homebrew Cask
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger automatically when pushing a version tag, e.g., v1.0.0
+  workflow_dispatch: # Allow running manually from the Actions tab in GitHub
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, Release & Update Homebrew Cask
+    runs-on: macos-14 # Apple Silicon (M1/M2/M3) runner for native macOS compilation speed
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Xcode & Swift Environment
+        run: |
+          xcode-select -p
+          swift --version
+
+      - name: Build App Bundle
+        run: |
+          chmod +x ./build_app.sh
+          ./build_app.sh
+
+      - name: Package App for Distribution (Zip)
+        run: |
+          echo "Zipping UsageToolbar.app using Apple ditto tool..."
+          ditto -c -k --sequesterRsrc --keepParent UsageToolbar.app UsageToolbar.zip
+
+      - name: Calculate SHA256 & Extract Version
+        id: vars
+        run: |
+          SHA256=$(shasum -a 256 UsageToolbar.zip | awk '{print $1}')
+          echo "SHA256=${SHA256}" >> $GITHUB_ENV
+          
+          # Extract version from tag (e.g., v1.0.0 -> 1.0.0); fallback to 1.0.0 if triggered manually
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VER=${GITHUB_REF_NAME#v}
+          else
+            VER="1.0.0"
+          fi
+          echo "VERSION=${VER}" >> $GITHUB_ENV
+          
+          echo "Version: ${VER}"
+          echo "SHA256: ${SHA256}"
+
+      - name: Upload GitHub Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: UsageToolbar.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Cask Formula
+        run: |
+          echo "Updating Casks/usagetoolbar.rb with version ${VERSION} and new SHA256..."
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/usagetoolbar.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/usagetoolbar.rb
+          cat Casks/usagetoolbar.rb
+
+      - name: Commit & Push Updated Cask Formula
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/usagetoolbar.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(brew): update usagetoolbar cask to v${VERSION} [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "No changes to Cask formula needed."
+          fi
+
+      - name: Display Homebrew Instructions
+        run: |
+          echo "### 🎉 Release v${VERSION} Ready!" >> $GITHUB_STEP_SUMMARY
+          echo "SHA256 Checksum: \`${SHA256}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### How to install via Homebrew:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "brew tap jleagle/ai-usage-toolbar https://github.com/jleagle/ai-usage-toolbar" >> $GITHUB_STEP_SUMMARY
+          echo "brew install --cask usagetoolbar" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
