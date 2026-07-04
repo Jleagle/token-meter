@@ -2,10 +2,10 @@ cask "tokenmeter" do
   version "1.0.0"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
-  url "https://github.com/jleagle/ai-usage-toolbar/releases/download/v#{version}/TokenMeter.zip"
+  url "https://github.com/jleagle/token-meter/releases/download/v#{version}/TokenMeter.zip"
   name "TokenMeter"
   desc "macOS menu bar app for tracking AI usage and quotas (Gemini, Claude Pro, Anthropic API)"
-  homepage "https://github.com/jleagle/ai-usage-toolbar"
+  homepage "https://github.com/jleagle/token-meter"
 
   livecheck do
     url :url
