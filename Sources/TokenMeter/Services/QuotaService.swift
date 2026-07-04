@@ -15,14 +15,7 @@ class QuotaService: ObservableObject {
     
     private var timerCancellable: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
-    private let quotaURLs = [
-        URL(string: "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota")!,
-        URL(string: "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota")!
-    ]
-    private let codeAssistURLs = [
-        URL(string: "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist")!,
-        URL(string: "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist")!
-    ]
+
     
     private init() {
         startAutoRefreshTimer()
@@ -78,89 +71,16 @@ class QuotaService: ObservableObject {
                 }
             }
             
-            // 2. Try getting an OAuth token (optional fallback / for Tier Info & cloud API)
-            let token = try? await AuthManager.shared.getValidAccessToken()
-            
-            // 3. If we have a token, try fetching Tier Info & Project ID
-            var activeProjectId: String? = nil
-            if let token = token {
-                for url in codeAssistURLs {
-                    do {
-                        var request = URLRequest(url: url)
-                        request.httpMethod = "POST"
-                        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                        request.httpBody = "{}".data(using: .utf8)
-                        
-                        let (data, response) = try await URLSession.shared.data(for: request)
-                        if let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode) {
-                            let tierRes = try JSONDecoder().decode(TierResponse.self, from: data)
-                            if let proj = tierRes.cloudaicompanionProject, !proj.isEmpty {
-                                activeProjectId = proj
-                            }
-                            if let name = tierRes.paidTier?.name ?? tierRes.currentTier?.name, !name.isEmpty {
-                                self.currentTierName = name.replacingOccurrences(of: "Gemini Code Assist in ", with: "")
-                            }
-                            break
-                        }
-                    } catch {
-                        // Ignore tier fetch error
-                    }
-                }
-            }
-            
-            // 4. Fallback: Fetch legacy Quota Buckets from Cloud API if local server failed AND we have an OAuth token
-            var fallbackError: Error?
-            if agyBuckets.isEmpty, let token = token {
-                var fetchedBuckets: [QuotaBucket] = []
-                
-                let requestBodyData: Data
-                if let proj = activeProjectId {
-                    let bodyDict = ["project": proj]
-                    requestBodyData = (try? JSONSerialization.data(withJSONObject: bodyDict)) ?? "{}".data(using: .utf8)!
-                } else {
-                    requestBodyData = "{}".data(using: .utf8)!
-                }
-                
-                for url in quotaURLs {
-                    do {
-                        var request = URLRequest(url: url)
-                        request.httpMethod = "POST"
-                        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                        request.httpBody = requestBodyData
-                        
-                        let (data, response) = try await URLSession.shared.data(for: request)
-                        guard let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode) else {
-                            let errStr = String(data: data, encoding: .utf8) ?? "HTTP Error"
-                            throw NSError(domain: "QuotaService", code: -1, userInfo: [NSLocalizedDescriptionKey: errStr])
-                        }
-                        
-                        let quotaRes = try JSONDecoder().decode(QuotaResponse.self, from: data)
-                        if let buckets = quotaRes.buckets, !buckets.isEmpty {
-                            fetchedBuckets = buckets.sorted { $0.displayName < $1.displayName }
-                            break
-                        }
-                    } catch {
-                        fallbackError = error
-                    }
-                }
-                
-                agyBuckets = fetchedBuckets
-            }
-            
-            // 5. Fetch Official Claude Buckets (CLI & API Key)
+            // 2. Fetch Official Claude Buckets (CLI & API Key)
             let claudeBuckets = await fetchOfficialClaudeBuckets()
             
-            // 6. Fetch Official Codex / OpenAI Buckets (CLI & API Key)
+            // 3. Fetch Official Codex / OpenAI Buckets (CLI & API Key)
             let codexBuckets = await fetchOfficialCodexBuckets()
             
             let combined = agyBuckets + claudeBuckets + codexBuckets
             if combined.isEmpty {
-                if let err = fallbackError {
-                    throw err
-                } else if token == nil && agyBuckets.isEmpty {
-                    throw NSError(domain: "QuotaService", code: -3, userInfo: [NSLocalizedDescriptionKey: "No local language server found and no OAuth refresh token available."])
+                if agyBuckets.isEmpty {
+                    throw NSError(domain: "QuotaService", code: -3, userInfo: [NSLocalizedDescriptionKey: "No local language server found running on port 4040/4041."])
                 } else {
                     throw NSError(domain: "QuotaService", code: -2, userInfo: [NSLocalizedDescriptionKey: "No quota usage data returned."])
                 }
