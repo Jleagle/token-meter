@@ -14,6 +14,12 @@ cask "token-meter" do
 
   app "TokenMeter.app"
 
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "#{appdir}/TokenMeter.app"],
+                   sudo: false
+  end
+
   zap trash: [
     "~/Library/Application Support/TokenMeter",
     "~/Library/Preferences/com.token.meter.plist",
