@@ -88,6 +88,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "#### How to install via Homebrew:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "brew tap jleagle/tokenmeter https://github.com/jleagle/tokenmeter" >> $GITHUB_STEP_SUMMARY
+          echo "brew tap jleagle/token-meter https://github.com/jleagle/token-meter" >> $GITHUB_STEP_SUMMARY
           echo "brew install --cask tokenmeter" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
