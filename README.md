@@ -4,4 +4,4 @@
     brew tap jleagle/token-meter https://github.com/jleagle/token-meter
     
     # 2. Install the application
-    brew install --cask tokenmeter
+    brew install --cask token-meter

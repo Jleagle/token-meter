@@ -1,4 +1,4 @@
-cask "tokenmeter" do
+cask "token-meter" do
   version "1.0.0"
   sha256 "ec826d0c128bffa444b569405c3ef4f5315c642de175bc27ef5fa94f6e158716"
 

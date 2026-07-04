@@ -63,19 +63,19 @@ jobs:
 
       - name: Update Homebrew Cask Formula
         run: |
-          echo "Updating Casks/tokenmeter.rb with version ${VERSION} and new SHA256..."
-          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/tokenmeter.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/tokenmeter.rb
-          cat Casks/tokenmeter.rb
+          echo "Updating Casks/token-meter.rb with version ${VERSION} and new SHA256..."
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/token-meter.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/token-meter.rb
+          cat Casks/token-meter.rb
 
       - name: Commit & Push Updated Cask Formula
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Casks/tokenmeter.rb
+          git add Casks/token-meter.rb
           if ! git diff --cached --quiet; then
-            git commit -m "chore(brew): update tokenmeter cask to v${VERSION} [skip ci]"
+            git commit -m "chore(brew): update token-meter cask to v${VERSION} [skip ci]"
             git push origin HEAD:main
           else
             echo "No changes to Cask formula needed."
@@ -89,5 +89,5 @@ jobs:
           echo "#### How to install via Homebrew:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
           echo "brew tap jleagle/token-meter https://github.com/jleagle/token-meter" >> $GITHUB_STEP_SUMMARY
-          echo "brew install --cask tokenmeter" >> $GITHUB_STEP_SUMMARY
+          echo "brew install --cask token-meter" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
