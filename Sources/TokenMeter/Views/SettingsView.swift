@@ -21,7 +21,7 @@ struct SettingsView: View {
             }
             
             VStack(alignment: .leading, spacing: 3) {
-                Text("UsageToolbar Settings")
+                Text("TokenMeter Settings")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 Text("Configure menu bar display, Anthropic CLI & API tracking")
@@ -274,7 +274,7 @@ struct SettingsView: View {
     private var buttonsSection: some View {
         HStack {
             Button("Close") {
-                if let window = NSApplication.shared.windows.first(where: { $0.title == "UsageToolbar Settings" }) {
+                if let window = NSApplication.shared.windows.first(where: { $0.title == "TokenMeter Settings" }) {
                     window.close()
                 }
             }
@@ -292,7 +292,7 @@ struct SettingsView: View {
                 Task {
                     await QuotaService.shared.refresh()
                 }
-                if let window = NSApplication.shared.windows.first(where: { $0.title == "UsageToolbar Settings" }) {
+                if let window = NSApplication.shared.windows.first(where: { $0.title == "TokenMeter Settings" }) {
                     window.close()
                 }
             }) {

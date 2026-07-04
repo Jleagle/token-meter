@@ -32,13 +32,13 @@ jobs:
 
       - name: Package App for Distribution (Zip)
         run: |
-          echo "Zipping UsageToolbar.app using Apple ditto tool..."
-          ditto -c -k --sequesterRsrc --keepParent UsageToolbar.app UsageToolbar.zip
+          echo "Zipping TokenMeter.app using Apple ditto tool..."
+          ditto -c -k --sequesterRsrc --keepParent TokenMeter.app TokenMeter.zip
 
       - name: Calculate SHA256 & Extract Version
         id: vars
         run: |
-          SHA256=$(shasum -a 256 UsageToolbar.zip | awk '{print $1}')
+          SHA256=$(shasum -a 256 TokenMeter.zip | awk '{print $1}')
           echo "SHA256=${SHA256}" >> $GITHUB_ENV
           
           # Extract version from tag (e.g., v1.0.0 -> 1.0.0); fallback to 1.0.0 if triggered manually
@@ -56,26 +56,26 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: UsageToolbar.zip
+          files: TokenMeter.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Homebrew Cask Formula
         run: |
-          echo "Updating Casks/usagetoolbar.rb with version ${VERSION} and new SHA256..."
-          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/usagetoolbar.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/usagetoolbar.rb
-          cat Casks/usagetoolbar.rb
+          echo "Updating Casks/tokenmeter.rb with version ${VERSION} and new SHA256..."
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/tokenmeter.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/tokenmeter.rb
+          cat Casks/tokenmeter.rb
 
       - name: Commit & Push Updated Cask Formula
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Casks/usagetoolbar.rb
+          git add Casks/tokenmeter.rb
           if ! git diff --cached --quiet; then
-            git commit -m "chore(brew): update usagetoolbar cask to v${VERSION} [skip ci]"
+            git commit -m "chore(brew): update tokenmeter cask to v${VERSION} [skip ci]"
             git push origin HEAD:main
           else
             echo "No changes to Cask formula needed."
@@ -88,6 +88,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "#### How to install via Homebrew:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "brew tap jleagle/ai-usage-toolbar https://github.com/jleagle/ai-usage-toolbar" >> $GITHUB_STEP_SUMMARY
-          echo "brew install --cask usagetoolbar" >> $GITHUB_STEP_SUMMARY
+          echo "brew tap jleagle/tokenmeter https://github.com/jleagle/tokenmeter" >> $GITHUB_STEP_SUMMARY
+          echo "brew install --cask tokenmeter" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "UsageToolbar",
+    name: "TokenMeter",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "UsageToolbar",
-            targets: ["UsageToolbar"]
+            name: "TokenMeter",
+            targets: ["TokenMeter"]
         )
     ],
     targets: [
         .executableTarget(
-            name: "UsageToolbar",
-            path: "Sources/UsageToolbar"
+            name: "TokenMeter",
+            path: "Sources/TokenMeter"
         )
     ]
 )

@@ -18,7 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize Menu Bar Item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "AI Usage Toolbar") {
+            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "TokenMeter") {
                 image.isTemplate = true
                 button.image = image
             } else {
@@ -44,7 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if targetId == "none" || buckets.isEmpty {
             button.title = ""
-            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "AI Usage Toolbar") {
+            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "TokenMeter") {
                 image.isTemplate = true
                 button.image = image
             }
@@ -108,7 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "UsageToolbar Settings"
+        window.title = "TokenMeter Settings"
         window.center()
         window.contentViewController = NSHostingController(rootView: SettingsView())
         window.isReleasedWhenClosed = false

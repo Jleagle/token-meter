@@ -27,7 +27,7 @@ struct HeaderView: View {
             
             // Title
             HStack(spacing: 6) {
-                Text("AI Usage Toolbar")
+                Text("TokenMeter")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 

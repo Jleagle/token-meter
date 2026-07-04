@@ -1,9 +1,9 @@
-cask "usagetoolbar" do
+cask "tokenmeter" do
   version "1.0.0"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
-  url "https://github.com/jleagle/ai-usage-toolbar/releases/download/v#{version}/UsageToolbar.zip"
-  name "UsageToolbar"
+  url "https://github.com/jleagle/ai-usage-toolbar/releases/download/v#{version}/TokenMeter.zip"
+  name "TokenMeter"
   desc "macOS menu bar app for tracking AI usage and quotas (Gemini, Claude Pro, Anthropic API)"
   homepage "https://github.com/jleagle/ai-usage-toolbar"
 
@@ -12,11 +12,11 @@ cask "usagetoolbar" do
     strategy :github_latest
   end
 
-  app "UsageToolbar.app"
+  app "TokenMeter.app"
 
   zap trash: [
-    "~/Library/Application Support/UsageToolbar",
-    "~/Library/Preferences/com.usage.toolbar.plist",
+    "~/Library/Application Support/TokenMeter",
+    "~/Library/Preferences/com.token.meter.plist",
     "~/Library/Preferences/anthropicApiKey.plist",
     "~/Library/Preferences/monthlyBudget.plist",
     "~/Library/Preferences/openAiApiKey.plist",
