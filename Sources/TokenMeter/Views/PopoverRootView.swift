@@ -136,6 +136,11 @@ struct PopoverRootView: View {
         }
     }
     
+    private var maxContentHeight: CGFloat {
+        let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
+        return max(400, screenHeight - 140)
+    }
+    
     private var contentArea: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 10) {
@@ -149,7 +154,7 @@ struct PopoverRootView: View {
             }
             .padding(14)
         }
-        .frame(maxHeight: 440)
+        .frame(maxHeight: maxContentHeight)
     }
     
     var body: some View {
