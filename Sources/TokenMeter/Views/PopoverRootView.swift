@@ -44,12 +44,12 @@ struct PopoverRootView: View {
             
             Text("Connection Error")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.black)
             
             if let err = service.errorMessage {
                 Text(err)
                     .font(.system(size: 11))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.black.opacity(0.7))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 10)
             }
@@ -64,7 +64,7 @@ struct PopoverRootView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color.blue.opacity(0.6))
+                    .background(Color.blue.opacity(0.8))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(PlainButtonStyle())
@@ -76,12 +76,12 @@ struct PopoverRootView: View {
     private var loadingStateView: some View {
         VStack(spacing: 12) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                .progressViewStyle(CircularProgressViewStyle(tint: .black))
                 .scaleEffect(0.9)
             
             Text("Fetching live usage & loading bars...")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundColor(.gray)
+                .foregroundColor(.black.opacity(0.7))
         }
         .padding(.vertical, 40)
     }
@@ -92,7 +92,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Antigravity",
                 icon: "cpu.fill",
-                color: Color(red: 0.0, green: 0.8, blue: 0.9)
+                color: Color(red: 0.05, green: 0.40, blue: 0.85)
             )
             
             ForEach(antigravityBuckets) { bucket in
@@ -109,7 +109,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Claude",
                 icon: "sparkle",
-                color: Color(red: 0.85, green: 0.45, blue: 0.3)
+                color: Color(red: 0.80, green: 0.35, blue: 0.10)
             )
             
             ForEach(officialClaudeBuckets) { bucket in
@@ -126,7 +126,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Codex",
                 icon: "bolt.shield.fill",
-                color: Color(red: 0.1, green: 0.75, blue: 0.55)
+                color: Color(red: 0.05, green: 0.55, blue: 0.40)
             )
             
             ForEach(officialCodexBuckets) { bucket in
@@ -159,22 +159,19 @@ struct PopoverRootView: View {
     
     var body: some View {
         ZStack {
-            VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active)
-                .edgesIgnoringSafeArea(.all)
-            
-            Color.black.opacity(0.3)
+            VisualEffectView(material: .menu, blendingMode: .behindWindow, state: .active)
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
                 HeaderView(service: service)
                 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.black.opacity(0.1))
                 
                 contentArea
                 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(Color.black.opacity(0.1))
                 
                 FooterView(service: service)
             }
@@ -183,7 +180,7 @@ struct PopoverRootView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
         )
     }
 }

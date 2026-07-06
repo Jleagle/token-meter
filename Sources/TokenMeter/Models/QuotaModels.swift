@@ -95,11 +95,11 @@ struct QuotaBucket: Codable, Identifiable {
     var progressColor: Color {
         let pct = remainingPercentage
         if pct >= 70 {
-            return Color(red: 0.2, green: 0.85, blue: 0.5) // Vibrant Green
+            return Color(red: 0.08, green: 0.60, blue: 0.35) // Deep Emerald Green
         } else if pct >= 30 {
-            return Color(red: 0.98, green: 0.7, blue: 0.2) // Amber Gold
+            return Color(red: 0.82, green: 0.45, blue: 0.05) // Burnt Amber Gold
         } else {
-            return Color(red: 0.95, green: 0.3, blue: 0.4) // Coral Red
+            return Color(red: 0.85, green: 0.18, blue: 0.25) // Ruby Crimson Red
         }
     }
     
@@ -107,19 +107,19 @@ struct QuotaBucket: Codable, Identifiable {
         let pct = remainingPercentage
         if pct >= 70 {
             return LinearGradient(
-                colors: [Color(red: 0.0, green: 0.95, blue: 0.8), Color(red: 0.2, green: 0.8, blue: 0.4)],
+                colors: [Color(red: 0.12, green: 0.72, blue: 0.42), Color(red: 0.06, green: 0.55, blue: 0.32)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         } else if pct >= 30 {
             return LinearGradient(
-                colors: [Color(red: 0.98, green: 0.85, blue: 0.3), Color(red: 0.98, green: 0.55, blue: 0.2)],
+                colors: [Color(red: 0.92, green: 0.60, blue: 0.12), Color(red: 0.80, green: 0.42, blue: 0.05)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         } else {
             return LinearGradient(
-                colors: [Color(red: 1.0, green: 0.4, blue: 0.4), Color(red: 0.9, green: 0.1, blue: 0.3)],
+                colors: [Color(red: 0.92, green: 0.30, blue: 0.35), Color(red: 0.82, green: 0.15, blue: 0.22)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
