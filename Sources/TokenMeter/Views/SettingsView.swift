@@ -20,10 +20,20 @@ struct SettingsView: View {
                     .foregroundColor(.white)
             }
             
-            VStack(alignment: .leading, spacing: 3) {
-                Text("TokenMeter Settings")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("TokenMeter Settings")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                    
+                    Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.08))
+                        .clipShape(Capsule())
+                }
                 Text("Configure menu bar display, Anthropic CLI & API tracking")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)

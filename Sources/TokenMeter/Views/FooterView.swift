@@ -44,7 +44,7 @@ struct FooterView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(PlainButtonStyle())
-            .help("Open Settings")
+            .help("Open Settings (v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"))")
             
             // Quit Button
             Button(action: {

@@ -22,7 +22,13 @@ BINARY_PATH="$(swift build -c release --disable-sandbox --disable-index-store --
 cp "$BINARY_PATH" "$MACOS_DIR/TokenMeter"
 chmod +x "$MACOS_DIR/TokenMeter"
 
-# 4. Generate Info.plist
+# 4. Determine Version Number
+if [ -z "$APP_VERSION" ]; then
+  APP_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || grep -E '^[[:space:]]*version "[^"]+"' Casks/token-meter.rb 2>/dev/null | sed -E 's/.*version "([^"]+)".*/\1/' || echo "1.0.0")
+fi
+echo "Using App Version: $APP_VERSION"
+
+# 5. Generate Info.plist
 echo "Generating Info.plist..."
 cat <<EOF > "$APP_DIR/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -42,9 +48,9 @@ cat <<EOF > "$APP_DIR/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>${APP_VERSION}</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>${APP_VERSION}</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>

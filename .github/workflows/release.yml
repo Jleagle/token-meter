@@ -25,31 +25,33 @@ jobs:
           xcode-select -p
           swift --version
 
+      - name: Extract Version
+        id: extract_ver
+        run: |
+          # Extract version from tag (e.g., v1.0.0 -> 1.0.0); fallback to git tag or 1.0.0 if triggered manually
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VER=${GITHUB_REF_NAME#v}
+          else
+            VER=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "1.0.0")
+          fi
+          echo "VERSION=${VER}" >> $GITHUB_ENV
+          echo "Version: ${VER}"
+
       - name: Build App Bundle
         run: |
           chmod +x ./build_app.sh
-          ./build_app.sh
+          APP_VERSION="${VERSION}" ./build_app.sh
 
       - name: Package App for Distribution (Zip)
         run: |
           echo "Zipping TokenMeter.app using Apple ditto tool..."
           ditto -c -k --sequesterRsrc --keepParent TokenMeter.app TokenMeter.zip
 
-      - name: Calculate SHA256 & Extract Version
+      - name: Calculate SHA256
         id: vars
         run: |
           SHA256=$(shasum -a 256 TokenMeter.zip | awk '{print $1}')
           echo "SHA256=${SHA256}" >> $GITHUB_ENV
-          
-          # Extract version from tag (e.g., v1.0.0 -> 1.0.0); fallback to 1.0.0 if triggered manually
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VER=${GITHUB_REF_NAME#v}
-          else
-            VER="1.0.0"
-          fi
-          echo "VERSION=${VER}" >> $GITHUB_ENV
-          
-          echo "Version: ${VER}"
           echo "SHA256: ${SHA256}"
 
       - name: Upload GitHub Release Asset
