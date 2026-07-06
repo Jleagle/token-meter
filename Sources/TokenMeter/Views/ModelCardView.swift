@@ -16,7 +16,7 @@ struct ModelCardView: View {
                 
                 Text(bucket.displayName)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
             }
             
             Spacer()
@@ -39,10 +39,10 @@ struct ModelCardView: View {
             ZStack(alignment: .leading) {
                 // Track
                 Capsule()
-                    .fill(Color.black.opacity(0.12))
+                    .fill(Color.primary.opacity(0.1))
                     .frame(height: 8)
                     .overlay(
-                        Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                        Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
                     )
                 
                 // Progress Fill
@@ -73,15 +73,15 @@ struct ModelCardView: View {
                 
                 Text(bucket.tokenType == "usd" ? "Within Monthly Budget" : "Full Quota Available")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.black.opacity(0.75))
+                    .foregroundColor(.secondary)
             } else {
                 Image(systemName: "clock.arrow.2.circlepath")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.black.opacity(0.6))
+                    .foregroundColor(.secondary)
                 
                 Text("Resets in \(timeString)")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.black.opacity(0.75))
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -89,7 +89,7 @@ struct ModelCardView: View {
             if let type = bucket.tokenType {
                 Text(type == "usd" ? "USD Budget" : type.capitalized)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.black.opacity(0.5))
+                    .foregroundColor(.secondary.opacity(0.8))
             }
         }
     }
@@ -103,10 +103,10 @@ struct ModelCardView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.primary.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
                 )
         )
         .onAppear {

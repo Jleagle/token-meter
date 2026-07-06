@@ -29,7 +29,7 @@ struct HeaderView: View {
             HStack(spacing: 6) {
                 Text("TokenMeter")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
+                    .foregroundColor(.primary)
                 
                 Circle()
                     .fill(service.errorMessage == nil ? Color.green : Color.red)
@@ -53,12 +53,12 @@ struct HeaderView: View {
             }) {
                 ZStack {
                     Circle()
-                        .fill(Color.black.opacity(0.06))
+                        .fill(Color.primary.opacity(0.06))
                         .frame(width: 28, height: 28)
                     
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.black.opacity(0.7))
+                        .foregroundColor(.secondary)
                         .rotationEffect(.degrees(service.isLoading ? 360 : 0))
                         .animation(
                             service.isLoading

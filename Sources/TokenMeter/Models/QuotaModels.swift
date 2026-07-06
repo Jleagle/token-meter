@@ -95,11 +95,11 @@ struct QuotaBucket: Codable, Identifiable {
     var progressColor: Color {
         let pct = remainingPercentage
         if pct >= 70 {
-            return Color(red: 0.08, green: 0.60, blue: 0.35) // Deep Emerald Green
+            return Color(NSColor.systemGreen)
         } else if pct >= 30 {
-            return Color(red: 0.82, green: 0.45, blue: 0.05) // Burnt Amber Gold
+            return Color(NSColor.systemOrange)
         } else {
-            return Color(red: 0.85, green: 0.18, blue: 0.25) // Ruby Crimson Red
+            return Color(NSColor.systemRed)
         }
     }
     
@@ -107,19 +107,19 @@ struct QuotaBucket: Codable, Identifiable {
         let pct = remainingPercentage
         if pct >= 70 {
             return LinearGradient(
-                colors: [Color(red: 0.12, green: 0.72, blue: 0.42), Color(red: 0.06, green: 0.55, blue: 0.32)],
+                colors: [Color(NSColor.systemGreen), Color(NSColor.systemGreen).opacity(0.85)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         } else if pct >= 30 {
             return LinearGradient(
-                colors: [Color(red: 0.92, green: 0.60, blue: 0.12), Color(red: 0.80, green: 0.42, blue: 0.05)],
+                colors: [Color(NSColor.systemYellow), Color(NSColor.systemOrange)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         } else {
             return LinearGradient(
-                colors: [Color(red: 0.92, green: 0.30, blue: 0.35), Color(red: 0.82, green: 0.15, blue: 0.22)],
+                colors: [Color(NSColor.systemOrange), Color(NSColor.systemRed)],
                 startPoint: .leading,
                 endPoint: .trailing
             )

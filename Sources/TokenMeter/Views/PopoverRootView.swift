@@ -44,12 +44,12 @@ struct PopoverRootView: View {
             
             Text("Connection Error")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
             
             if let err = service.errorMessage {
                 Text(err)
                     .font(.system(size: 11))
-                    .foregroundColor(.black.opacity(0.7))
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 10)
             }
@@ -76,12 +76,12 @@ struct PopoverRootView: View {
     private var loadingStateView: some View {
         VStack(spacing: 12) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                .progressViewStyle(CircularProgressViewStyle())
                 .scaleEffect(0.9)
             
             Text("Fetching live usage & loading bars...")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundColor(.black.opacity(0.7))
+                .foregroundColor(.secondary)
         }
         .padding(.vertical, 40)
     }
@@ -92,7 +92,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Antigravity",
                 icon: "cpu.fill",
-                color: Color(red: 0.05, green: 0.40, blue: 0.85)
+                color: Color(NSColor.systemBlue)
             )
             
             ForEach(antigravityBuckets) { bucket in
@@ -109,7 +109,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Claude",
                 icon: "sparkle",
-                color: Color(red: 0.80, green: 0.35, blue: 0.10)
+                color: Color(NSColor.systemOrange)
             )
             
             ForEach(officialClaudeBuckets) { bucket in
@@ -126,7 +126,7 @@ struct PopoverRootView: View {
             SectionHeaderView(
                 title: "Codex",
                 icon: "bolt.shield.fill",
-                color: Color(red: 0.05, green: 0.55, blue: 0.40)
+                color: Color(NSColor.systemGreen)
             )
             
             ForEach(officialCodexBuckets) { bucket in
@@ -159,29 +159,22 @@ struct PopoverRootView: View {
     
     var body: some View {
         ZStack {
-            VisualEffectView(material: .menu, blendingMode: .behindWindow, state: .active)
+            VisualEffectView(material: .popover, blendingMode: .behindWindow, state: .active)
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
                 HeaderView(service: service)
                 
                 Divider()
-                    .background(Color.black.opacity(0.1))
                 
                 contentArea
                 
                 Divider()
-                    .background(Color.black.opacity(0.1))
                 
                 FooterView(service: service)
             }
         }
         .frame(width: 330)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
-        )
     }
 }
 

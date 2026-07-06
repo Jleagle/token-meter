@@ -25,7 +25,7 @@ struct FooterView: View {
                 
                 Text("Refreshes in \(formattedRemainingTime)")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.black.opacity(0.7))
+                    .foregroundColor(.secondary)
             }
             
             Spacer()
@@ -38,9 +38,9 @@ struct FooterView: View {
             }) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.black.opacity(0.8))
+                    .foregroundColor(.secondary)
                     .padding(4)
-                    .background(Color.black.opacity(0.06))
+                    .background(Color.primary.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
             .buttonStyle(PlainButtonStyle())
@@ -70,6 +70,6 @@ struct FooterView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.black.opacity(0.04))
+        .background(Color.primary.opacity(0.03))
     }
 }
