@@ -151,11 +151,14 @@ struct ModelCardView: View {
             return
         }
         
-        let hours = Int(diff) / 3600
+        let days = Int(diff) / 86400
+        let hours = (Int(diff) % 86400) / 3600
         let minutes = (Int(diff) % 3600) / 60
         let seconds = Int(diff) % 60
         
-        if hours > 0 {
+        if days > 0 {
+            timeString = String(format: "%dd %dh %dm", days, hours, minutes)
+        } else if hours > 0 {
             timeString = String(format: "%dh %dm %ds", hours, minutes, seconds)
         } else if minutes > 0 {
             timeString = String(format: "%dm %ds", minutes, seconds)
