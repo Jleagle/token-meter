@@ -97,7 +97,6 @@ struct PopoverRootView: View {
             
             ForEach(antigravityBuckets) { bucket in
                 ModelCardView(bucket: bucket)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
         
@@ -114,7 +113,6 @@ struct PopoverRootView: View {
             
             ForEach(officialClaudeBuckets) { bucket in
                 ModelCardView(bucket: bucket)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
         
@@ -131,7 +129,6 @@ struct PopoverRootView: View {
             
             ForEach(officialCodexBuckets) { bucket in
                 ModelCardView(bucket: bucket)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
         }
     }

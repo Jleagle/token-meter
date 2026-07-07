@@ -49,6 +49,7 @@ struct ModelCardView: View {
                 Capsule()
                     .fill(bucket.progressGradient)
                     .frame(width: max(8, geometry.size.width * animatedProgress), height: 8)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.75), value: animatedProgress)
                     .shadow(color: bucket.progressColor.opacity(0.5), radius: 4, x: 0, y: 0)
             }
         }
@@ -73,15 +74,15 @@ struct ModelCardView: View {
                 
                 Text(bucket.tokenType == "usd" ? "Within Monthly Budget" : "Full Quota Available")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black.opacity(0.75))
             } else {
                 Image(systemName: "clock.arrow.2.circlepath")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black.opacity(0.6))
                 
                 Text("Resets in \(timeString)")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.black.opacity(0.75))
             }
             
             Spacer()
@@ -89,7 +90,7 @@ struct ModelCardView: View {
             if let type = bucket.tokenType {
                 Text(type == "usd" ? "USD Budget" : type.capitalized)
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.secondary.opacity(0.8))
+                    .foregroundColor(.black.opacity(0.5))
             }
         }
     }
@@ -103,10 +104,10 @@ struct ModelCardView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
+                .fill(Color.black.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
                 )
         )
         .onAppear {
@@ -119,13 +120,11 @@ struct ModelCardView: View {
     }
     
     private func updateProgress() {
-        withAnimation(.spring(response: 0.8, dampingFraction: 0.75)) {
-            var fraction = bucket.remainingFraction ?? (Double(bucket.remainingPercentage) / 100.0)
-            if fraction > 0.0 && fraction < 0.06 {
-                fraction = 0.06 // ensure at least a visible 6% sliver when there are positive credits
-            }
-            animatedProgress = CGFloat(min(max(fraction, 0.0), 1.0))
+        var fraction = bucket.remainingFraction ?? (Double(bucket.remainingPercentage) / 100.0)
+        if fraction > 0.0 && fraction < 0.06 {
+            fraction = 0.06 // ensure at least a visible 6% sliver when there are positive credits
         }
+        animatedProgress = CGFloat(min(max(fraction, 0.0), 1.0))
     }
     
     private func startTimer() {
