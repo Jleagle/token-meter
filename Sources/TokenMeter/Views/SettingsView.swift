@@ -271,7 +271,7 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 22) {
                 headerSection
                 

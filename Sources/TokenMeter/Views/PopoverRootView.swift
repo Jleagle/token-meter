@@ -142,7 +142,7 @@ struct PopoverRootView: View {
     }
     
     private var contentArea: some View {
-        ScrollView(.vertical, showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: true) {
             VStack(spacing: 10) {
                 if service.errorMessage != nil && service.buckets.isEmpty {
                     errorStateView
