@@ -1,7 +1,15 @@
 import SwiftUI
 
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct PopoverRootView: View {
     @StateObject private var service = QuotaService.shared
+    @State private var contentHeight: CGFloat = 200
     
     private var antigravityBuckets: [QuotaBucket] {
         service.buckets
@@ -150,8 +158,16 @@ struct PopoverRootView: View {
                 }
             }
             .padding(14)
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(key: ContentHeightKey.self, value: geo.size.height)
+                }
+            )
         }
-        .frame(maxHeight: maxContentHeight)
+        // Explicit height keeps NSHostingController's fitting size stable, otherwise the
+        // popover oscillates between collapsed and full height on every layout pass
+        .frame(height: min(max(contentHeight, 60), maxContentHeight))
+        .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
     }
     
     var body: some View {
