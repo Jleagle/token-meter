@@ -14,3 +14,16 @@ brew trust jleagle/token-meter
 # 3. Install the application
 brew install --cask token-meter
 ```
+
+## Development
+
+Requires Xcode command line tools (macOS 13+).
+
+```bash
+# Build and run directly from source (appears in the menu bar)
+swift run TokenMeter
+
+# Or build a full .app bundle
+./build_app.sh
+open ./TokenMeter.app
+```
