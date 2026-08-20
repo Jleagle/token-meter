@@ -94,6 +94,41 @@ struct QuotaBucket: Codable, Identifiable {
         }
         return 100
     }
+
+    var usedPercentage: Int { max(0, 100 - remainingPercentage) }
+
+    private var windowDuration: TimeInterval? {
+        switch tokenType {
+        case "5h": return 5 * 3600
+        case "weekly": return 7 * 86400
+        default: return nil
+        }
+    }
+
+    // Burn rate: quota used relative to how much of the window has elapsed.
+    // 100 = using quota exactly as fast as the window refills, 200 = twice
+    // too fast, 50 = half pace. Nil when the window timing is unknown.
+    var pacePercentage: Int? {
+        guard let duration = windowDuration, let reset = resetDate else { return nil }
+        let remainingTime = reset.timeIntervalSinceNow
+        guard remainingTime > 0, remainingTime <= duration else { return nil }
+        let elapsedFraction = max(0.01, 1.0 - (remainingTime / duration))
+        let usedFraction = 1.0 - (remainingFraction ?? Double(remainingPercentage) / 100.0)
+        return min(999, max(0, Int(round(usedFraction / elapsedFraction * 100.0))))
+    }
+
+    // Fallback treats the window as fully elapsed, so pace degrades to used %
+    var effectivePacePercentage: Int { pacePercentage ?? usedPercentage }
+
+    static func paceColor(for pace: Int) -> Color {
+        if pace <= 90 {
+            return Color(NSColor.systemGreen)
+        } else if pace <= 110 {
+            return Color(NSColor.systemOrange)
+        } else {
+            return Color(NSColor.systemRed)
+        }
+    }
     
     var progressColor: Color {
         let pct = remainingPercentage

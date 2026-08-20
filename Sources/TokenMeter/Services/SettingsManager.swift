@@ -8,13 +8,12 @@ class SettingsManager: ObservableObject {
         didSet { UserDefaults.standard.set(toolbarDisplayModelId, forKey: "toolbarDisplayModelId") }
     }
     
-    @Published var pollingRateSeconds: Int {
-        didSet { UserDefaults.standard.set(pollingRateSeconds, forKey: "pollingRateSeconds") }
+    @Published var usePaceMode: Bool {
+        didSet { UserDefaults.standard.set(usePaceMode, forKey: "usePaceMode") }
     }
     
     private init() {
         self.toolbarDisplayModelId = UserDefaults.standard.string(forKey: "toolbarDisplayModelId") ?? "auto"
-        let savedRate = UserDefaults.standard.integer(forKey: "pollingRateSeconds")
-        self.pollingRateSeconds = savedRate > 0 ? savedRate : 60
+        self.usePaceMode = UserDefaults.standard.bool(forKey: "usePaceMode")
     }
 }

@@ -17,39 +17,19 @@ struct PopoverRootView: View {
     @ObservedObject private var sizing = PopoverSizing.shared
     @State private var contentHeight: CGFloat = 200
     
-    private var geminiBuckets: [QuotaBucket] {
-        service.buckets
-            .filter { !$0.modelId.hasPrefix("official-") }
-            .sorted {
-                if $0.remainingPercentage == $1.remainingPercentage {
-                    return $0.displayName < $1.displayName
-                }
-                return $0.remainingPercentage < $1.remainingPercentage
+    private var sortedBuckets: [QuotaBucket] {
+        service.buckets.sorted {
+            // Greyed-out placeholders sink to the bottom
+            if ($0.unavailableReason == nil) != ($1.unavailableReason == nil) {
+                return $0.unavailableReason == nil
             }
-    }
-    
-    private var officialClaudeBuckets: [QuotaBucket] {
-        service.buckets
-            .filter { $0.modelId.hasPrefix("official-claude") }
-            .sorted {
-                if $0.remainingPercentage == $1.remainingPercentage {
-                    return $0.displayName < $1.displayName
-                }
-                return $0.remainingPercentage < $1.remainingPercentage
+            if $0.remainingPercentage == $1.remainingPercentage {
+                return $0.displayName < $1.displayName
             }
+            return $0.remainingPercentage < $1.remainingPercentage
+        }
     }
-    
-    private var officialCodexBuckets: [QuotaBucket] {
-        service.buckets
-            .filter { $0.modelId.hasPrefix("official-codex") }
-            .sorted {
-                if $0.remainingPercentage == $1.remainingPercentage {
-                    return $0.displayName < $1.displayName
-                }
-                return $0.remainingPercentage < $1.remainingPercentage
-            }
-    }
-    
+
     private var errorStateView: some View {
         VStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -100,50 +80,9 @@ struct PopoverRootView: View {
         .padding(.vertical, 40)
     }
     
-    @ViewBuilder
     private var bucketsListView: some View {
-        if !geminiBuckets.isEmpty {
-            SectionHeaderView(
-                title: "Gemini",
-                icon: "cpu.fill",
-                color: Color(NSColor.systemBlue)
-            )
-
-            ForEach(geminiBuckets) { bucket in
-                ModelCardView(bucket: bucket)
-            }
-        }
-        
-        if !officialClaudeBuckets.isEmpty {
-            if !geminiBuckets.isEmpty {
-                Spacer().frame(height: 6)
-            }
-            
-            SectionHeaderView(
-                title: "Claude",
-                icon: "sparkle",
-                color: Color(NSColor.systemOrange)
-            )
-            
-            ForEach(officialClaudeBuckets) { bucket in
-                ModelCardView(bucket: bucket)
-            }
-        }
-        
-        if !officialCodexBuckets.isEmpty {
-            if !geminiBuckets.isEmpty || !officialClaudeBuckets.isEmpty {
-                Spacer().frame(height: 6)
-            }
-            
-            SectionHeaderView(
-                title: "Codex",
-                icon: "bolt.shield.fill",
-                color: Color(NSColor.systemGreen)
-            )
-            
-            ForEach(officialCodexBuckets) { bucket in
-                ModelCardView(bucket: bucket)
-            }
+        ForEach(sortedBuckets) { bucket in
+            ModelCardView(bucket: bucket)
         }
     }
     
@@ -194,30 +133,5 @@ struct PopoverRootView: View {
             }
         }
         .frame(width: 330)
-    }
-}
-
-struct SectionHeaderView: View {
-    let title: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(color)
-            
-            Text(title)
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .foregroundColor(color)
-            
-            VStack {
-                Divider().background(color.opacity(0.35))
-            }
-        }
-        .padding(.top, 4)
-        .padding(.bottom, 2)
-        .padding(.horizontal, 4)
     }
 }

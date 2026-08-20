@@ -11,7 +11,9 @@ class QuotaService: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var lastUpdated: Date? = nil
     @Published var errorMessage: String? = nil
-    @Published var autoRefreshRemaining: Int = 60
+    @Published var autoRefreshRemaining: Int = QuotaService.pollIntervalSeconds
+
+    private static let pollIntervalSeconds = 120
     
     private var timerCancellable: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
@@ -19,16 +21,6 @@ class QuotaService: ObservableObject {
     
     private init() {
         startAutoRefreshTimer()
-        SettingsManager.shared.$pollingRateSeconds
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] newRate in
-                guard let self = self else { return }
-                if self.autoRefreshRemaining > newRate {
-                    self.autoRefreshRemaining = newRate
-                }
-            }
-            .store(in: &cancellables)
-            
         Task {
             await refresh()
         }
@@ -43,7 +35,7 @@ class QuotaService: ObservableObject {
                 if self.autoRefreshRemaining > 1 {
                     self.autoRefreshRemaining -= 1
                 } else {
-                    self.autoRefreshRemaining = SettingsManager.shared.pollingRateSeconds
+                    self.autoRefreshRemaining = QuotaService.pollIntervalSeconds
                     Task {
                         await self.refresh()
                     }
@@ -89,7 +81,7 @@ class QuotaService: ObservableObject {
             self.buckets = combined
             self.errorMessage = nil
             self.lastUpdated = Date()
-            self.autoRefreshRemaining = SettingsManager.shared.pollingRateSeconds
+            self.autoRefreshRemaining = QuotaService.pollIntervalSeconds
             
         } catch {
             self.errorMessage = error.localizedDescription
@@ -99,6 +91,15 @@ class QuotaService: ObservableObject {
     }
     
     // MARK: - Official Claude Integration
+
+    // The official usage endpoints rate-limit aggressively, so results are
+    // cached and refetched at most once per minute regardless of poll rate;
+    // transient failures keep serving the last good data
+    private var cachedClaudeBuckets: [QuotaBucket] = []
+    private var cachedClaudeFetchTime: Date?
+    private var cachedCodexBuckets: [QuotaBucket] = []
+    private var cachedCodexFetchTime: Date?
+    private let officialUsageMinInterval: TimeInterval = 60
     
     private func fetchOfficialClaudeBuckets() async -> [QuotaBucket] {
         // Only plan accounts are supported: usage comes from the Claude Code
@@ -114,6 +115,12 @@ class QuotaService: ObservableObject {
         }
 
         let planName = claudePlanDisplayName(creds.plan)
+
+        if let last = cachedClaudeFetchTime, Date().timeIntervalSince(last) < officialUsageMinInterval,
+           !cachedClaudeBuckets.isEmpty {
+            return cachedClaudeBuckets
+        }
+
         guard let url = URL(string: "https://api.anthropic.com/api/oauth/usage") else { return [] }
 
         var request = URLRequest(url: url)
@@ -124,16 +131,22 @@ class QuotaService: ObservableObject {
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let httpRes = response as? HTTPURLResponse else {
-            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+            return cachedClaudeBuckets.isEmpty
+                ? [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+                : cachedClaudeBuckets
         }
 
         if httpRes.statusCode == 401 || httpRes.statusCode == 403 {
+            cachedClaudeBuckets = []
+            cachedClaudeFetchTime = nil
             return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Session expired — open Claude Code to sign in")]
         }
 
         guard (200...299).contains(httpRes.statusCode),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+            return cachedClaudeBuckets.isEmpty
+                ? [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+                : cachedClaudeBuckets
         }
 
         var buckets: [QuotaBucket] = []
@@ -164,6 +177,8 @@ class QuotaService: ObservableObject {
             ))
         }
 
+        cachedClaudeBuckets = buckets
+        cachedClaudeFetchTime = Date()
         return buckets
     }
 
@@ -256,11 +271,18 @@ class QuotaService: ObservableObject {
             return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Not signed in to the Codex CLI")]
         }
 
-        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage(token: token) else {
-            return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Usage currently unavailable")]
+        if let last = cachedCodexFetchTime, Date().timeIntervalSince(last) < officialUsageMinInterval,
+           !cachedCodexBuckets.isEmpty {
+            return cachedCodexBuckets
         }
 
-        return [QuotaBucket(
+        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage(token: token) else {
+            return cachedCodexBuckets.isEmpty
+                ? [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Usage currently unavailable")]
+                : cachedCodexBuckets
+        }
+
+        let buckets = [QuotaBucket(
             resetTime: resetTimeStr,
             tokenType: "5h",
             modelId: "official-codex-cli-5h",
@@ -269,6 +291,9 @@ class QuotaService: ObservableObject {
             maxAmount: nil,
             customDisplayName: planName
         )]
+        cachedCodexBuckets = buckets
+        cachedCodexFetchTime = Date()
+        return buckets
     }
 
     private func fetchCodexCliUsage(token: String) async -> (Double, String, String)? {

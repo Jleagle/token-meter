@@ -46,9 +46,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         
         // Observe QuotaService buckets and Settings toolbarDisplayModelId
-        Publishers.CombineLatest(QuotaService.shared.$buckets, SettingsManager.shared.$toolbarDisplayModelId)
+        Publishers.CombineLatest3(QuotaService.shared.$buckets, SettingsManager.shared.$toolbarDisplayModelId, SettingsManager.shared.$usePaceMode)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] (buckets, displayModelId) in
+            .sink { [weak self] (buckets, displayModelId, _) in
                 self?.updateMenuBarDisplay(buckets: buckets, displayModelId: displayModelId)
             }
             .store(in: &cancellables)
@@ -69,18 +69,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             return
         }
         
+        let paceMode = SettingsManager.shared.usePaceMode
+
         var selectedBucket: QuotaBucket?
         if targetId == "auto" {
-            // Find lowest percentage bucket, ignoring greyed-out placeholders
-            selectedBucket = buckets
-                .filter { $0.unavailableReason == nil }
-                .min(by: { $0.remainingPercentage < $1.remainingPercentage })
+            // Pick the most at-risk bucket, ignoring greyed-out placeholders:
+            // lowest remaining quota, or fastest burn rate in pace mode
+            let candidates = buckets.filter { $0.unavailableReason == nil }
+            if paceMode {
+                selectedBucket = candidates.max(by: { $0.effectivePacePercentage < $1.effectivePacePercentage })
+            } else {
+                selectedBucket = candidates.min(by: { $0.remainingPercentage < $1.remainingPercentage })
+            }
         } else {
             selectedBucket = buckets.first(where: { $0.modelId == targetId })
         }
-        
+
         if let bucket = selectedBucket {
-            button.title = " \(bucket.remainingPercentage)%"
+            button.title = paceMode ? " \(bucket.effectivePacePercentage)%" : " \(bucket.remainingPercentage)%"
             
             let iconName = bucket.modelId.hasPrefix("official-") ? "sparkle" : "cpu"
             if let image = NSImage(systemSymbolName: iconName, accessibilityDescription: bucket.displayName) {
@@ -167,23 +173,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if popover.isShown {
             popover.performClose(nil)
         }
+
+        // Center on the screen the menu bar icon was clicked on, not the main screen
+        let size = NSSize(width: 540, height: 480)
+        var frame = NSRect(origin: .zero, size: size)
+        if let visible = (statusItem.button?.window?.screen ?? NSScreen.main)?.visibleFrame {
+            frame.origin.x = visible.midX - size.width / 2
+            frame.origin.y = visible.midY - size.height / 2
+        }
+
         if let window = settingsWindow {
-            window.setFrame(NSRect(x: window.frame.minX, y: window.frame.minY, width: 540, height: 480), display: true)
+            window.setFrame(frame, display: true)
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        
+
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 480),
+            contentRect: frame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "TokenMeter Settings"
-        window.center()
         window.contentViewController = NSHostingController(rootView: SettingsView())
         window.isReleasedWhenClosed = false
+        window.setFrame(frame, display: true)
         self.settingsWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)

@@ -32,7 +32,7 @@ struct SettingsView: View {
                         .background(Color.primary.opacity(0.08))
                         .clipShape(Capsule())
                 }
-                Text("Configure menu bar display & refresh rate")
+                Text("Configure menu bar display & percentage mode")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
@@ -93,37 +93,20 @@ struct SettingsView: View {
         )
     }
     
-    private var refreshRatePicker: some View {
-        Picker("", selection: $settings.pollingRateSeconds) {
-            Text("⚡️ 15 Seconds (Very Fast)").tag(15)
-            Text("🚀 30 Seconds (Fast)").tag(30)
-            Text("⏱️ 1 Minute (Standard • 60s)").tag(60)
-            Text("🕒 2 Minutes (120s)").tag(120)
-            Text("🕔 5 Minutes (300s)").tag(300)
-            Text("🕙 10 Minutes (600s)").tag(600)
-            Text("🕠 30 Minutes (1800s)").tag(1800)
-        }
-        .labelsHidden()
-        .pickerStyle(MenuPickerStyle())
-        .font(.system(size: 13))
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    private var refreshRateSection: some View {
+    private var paceModeSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("REFRESH & POLLING RATE")
+            Text("PERCENTAGE MODE")
                 .font(.system(size: 11, weight: .heavy, design: .monospaced))
                 .foregroundColor(Color(NSColor.systemBlue))
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Automatic Quota Polling Interval:")
+
+            Toggle(isOn: $settings.usePaceMode) {
+                Text("Show burn rate instead of remaining quota")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
-                
-                refreshRatePicker
             }
-            
-            Text("Controls how frequently the app queries local IDE servers and APIs in the background to update your progress bars and percentage badge.")
+            .toggleStyle(SwitchToggleStyle())
+
+            Text("Burn rate compares usage against how much of the window has elapsed: 100% means you're on pace to exactly use your quota, 200% means you're burning it twice as fast, and 50% means you're only using half of what the window allows. The Auto menu bar option shows the fastest-burning model.")
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -137,32 +120,7 @@ struct SettingsView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
         )
     }
-    
-    private var buttonsSection: some View {
-        HStack {
-            Button("Close") {
-                if let window = NSApplication.shared.windows.first(where: { $0.title == "TokenMeter Settings" }) {
-                    window.close()
-                }
-            }
-            .buttonStyle(.bordered)
-            .keyboardShortcut(.cancelAction)
-            
-            Spacer()
-            
-            Button("Save & Refresh Quota") {
-                Task {
-                    await QuotaService.shared.refresh()
-                }
-                if let window = NSApplication.shared.windows.first(where: { $0.title == "TokenMeter Settings" }) {
-                    window.close()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-        }
-    }
-    
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 22) {
@@ -172,13 +130,9 @@ struct SettingsView: View {
                 
                 menuBarDisplaySection
 
-                refreshRateSection
+                paceModeSection
 
                 Spacer(minLength: 4)
-                
-                Divider()
-                
-                buttonsSection
             }
             .padding(24)
         }

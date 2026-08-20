@@ -3,18 +3,31 @@ import Combine
 
 struct ModelCardView: View {
     let bucket: QuotaBucket
+    @ObservedObject private var settings = SettingsManager.shared
     @State private var timeString: String = "Calculating..."
     @State private var timer: AnyCancellable?
     @State private var animatedProgress: CGFloat = 0.0
 
     private var isUnavailable: Bool { bucket.unavailableReason != nil }
 
+    private var percentText: String {
+        if isUnavailable { return "—" }
+        if settings.usePaceMode { return "\(bucket.effectivePacePercentage)%" }
+        return "\(bucket.remainingPercentage)%"
+    }
+
+    private var accentColor: Color {
+        if isUnavailable { return .secondary }
+        if settings.usePaceMode { return QuotaBucket.paceColor(for: bucket.effectivePacePercentage) }
+        return bucket.progressColor
+    }
+
     private var topRow: some View {
         HStack {
             HStack(spacing: 6) {
                 Image(systemName: isUnavailable ? "lock.fill" : "sparkles")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(isUnavailable ? .secondary : bucket.progressColor)
+                    .foregroundColor(accentColor)
 
                 Text(bucket.displayName)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -23,15 +36,15 @@ struct ModelCardView: View {
 
             Spacer()
 
-            Text(isUnavailable ? "—" : "\(bucket.remainingPercentage)%")
+            Text(percentText)
                 .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundColor(isUnavailable ? .secondary : bucket.progressColor)
+                .foregroundColor(accentColor)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background((isUnavailable ? Color.secondary : bucket.progressColor).opacity(0.15))
+                .background(accentColor.opacity(0.15))
                 .clipShape(Capsule())
                 .overlay(
-                    Capsule().stroke((isUnavailable ? Color.secondary : bucket.progressColor).opacity(0.3), lineWidth: 0.5)
+                    Capsule().stroke(accentColor.opacity(0.3), lineWidth: 0.5)
                 )
         }
     }

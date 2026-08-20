@@ -44,33 +44,6 @@ struct HeaderView: View {
             }
             
             Spacer()
-            
-            // Refresh Button
-            Button(action: {
-                Task {
-                    await service.refresh()
-                }
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.primary.opacity(0.06))
-                        .frame(width: 28, height: 28)
-                    
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .rotationEffect(.degrees(service.isLoading ? 360 : 0))
-                        .animation(
-                            service.isLoading
-                            ? Animation.linear(duration: 1.0).repeatForever(autoreverses: false)
-                            : .default,
-                            value: service.isLoading
-                        )
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-            .help("Refresh Quota Now")
-            .disabled(service.isLoading)
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
