@@ -22,7 +22,10 @@ struct QuotaBucket: Codable, Identifiable {
     let remainingAmount: Int?
     let maxAmount: Int?
     var customDisplayName: String? = nil
-    
+    // Set when the provider is installed but usage can't be fetched (not signed
+    // in, expired session); the card renders greyed out with this text
+    var unavailableReason: String? = nil
+
     var id: String { modelId }
     
     var displayName: String {

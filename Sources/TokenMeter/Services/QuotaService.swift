@@ -102,9 +102,19 @@ class QuotaService: ObservableObject {
     
     private func fetchOfficialClaudeBuckets() async -> [QuotaBucket] {
         // Only plan accounts are supported: usage comes from the Claude Code
-        // OAuth session, no bucket is shown when no logged-in plan is found
-        guard let creds = loadClaudeOAuthCredentials(),
-              let url = URL(string: "https://api.anthropic.com/api/oauth/usage") else { return [] }
+        // OAuth session. When Claude Code is installed but no working session
+        // exists, a greyed-out placeholder card is shown instead
+        let claudeInstalled = FileManager.default.fileExists(
+            atPath: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude").path
+        )
+
+        guard let creds = loadClaudeOAuthCredentials() else {
+            guard claudeInstalled else { return [] }
+            return [unavailableBucket(modelId: "official-claude-unavailable", name: "Claude", reason: "Not signed in to Claude Code")]
+        }
+
+        let planName = claudePlanDisplayName(creds.plan)
+        guard let url = URL(string: "https://api.anthropic.com/api/oauth/usage") else { return [] }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -113,12 +123,19 @@ class QuotaService: ObservableObject {
         request.timeoutInterval = 4.0
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return []
+              let httpRes = response as? HTTPURLResponse else {
+            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
         }
 
-        let planName = claudePlanDisplayName(creds.plan)
+        if httpRes.statusCode == 401 || httpRes.statusCode == 403 {
+            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Session expired — open Claude Code to sign in")]
+        }
+
+        guard (200...299).contains(httpRes.statusCode),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+        }
+
         var buckets: [QuotaBucket] = []
 
         if let window = json["five_hour"] as? [String: Any],
@@ -148,6 +165,19 @@ class QuotaService: ObservableObject {
         }
 
         return buckets
+    }
+
+    private func unavailableBucket(modelId: String, name: String, reason: String) -> QuotaBucket {
+        QuotaBucket(
+            resetTime: nil,
+            tokenType: nil,
+            modelId: modelId,
+            remainingFraction: nil,
+            remainingAmount: nil,
+            maxAmount: nil,
+            customDisplayName: name,
+            unavailableReason: reason
+        )
     }
 
     private func loadClaudeOAuthCredentials() -> (token: String, plan: String)? {
@@ -214,9 +244,21 @@ class QuotaService: ObservableObject {
     // MARK: - Official Codex / OpenAI Integration
     
     private func fetchOfficialCodexBuckets() async -> [QuotaBucket] {
-        // Only plan accounts are supported: no bucket is shown unless the
-        // Codex CLI is logged in and real usage was fetched
-        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage() else { return [] }
+        // Only plan accounts are supported. When the Codex CLI is installed but
+        // no working session exists, a greyed-out placeholder card is shown
+        let codexDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex")
+        guard FileManager.default.fileExists(atPath: codexDir.path) else { return [] }
+
+        let authPath = codexDir.appendingPathComponent("auth.json")
+        guard let data = try? Data(contentsOf: authPath),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let token = json["access_token"] as? String, !token.isEmpty else {
+            return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Not signed in to the Codex CLI")]
+        }
+
+        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage(token: token) else {
+            return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Usage currently unavailable")]
+        }
 
         return [QuotaBucket(
             resetTime: resetTimeStr,
@@ -229,14 +271,7 @@ class QuotaService: ObservableObject {
         )]
     }
 
-    private func fetchCodexCliUsage() async -> (Double, String, String)? {
-        let authPath = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/auth.json")
-        guard let data = try? Data(contentsOf: authPath),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let token = json["access_token"] as? String, !token.isEmpty else {
-            return nil
-        }
-
+    private func fetchCodexCliUsage(token: String) async -> (Double, String, String)? {
         guard let url = URL(string: "https://chatgpt.com/backend-api/wham/usage") else {
             return nil
         }

@@ -46,7 +46,7 @@ struct SettingsView: View {
             Text("❌ Icon Only (No Percentage)").tag("none")
             if !quotaService.buckets.isEmpty {
                 Divider()
-                ForEach(quotaService.buckets) { bucket in
+                ForEach(quotaService.buckets.filter { $0.unavailableReason == nil }) { bucket in
                     Text("\(bucket.displayName) (\(bucket.remainingPercentage)%)").tag(bucket.modelId)
                 }
             } else {

@@ -12,7 +12,7 @@ Only plan/subscription accounts are supported — usage is read from the tools y
 | Claude (Pro / Max / Team / Enterprise) | 5-hour and weekly limits for your plan | Uses your Claude Code login (macOS Keychain, or `~/.claude/.credentials.json`) to query Anthropic's OAuth usage endpoint. Requires being logged into Claude Code. |
 | Codex / OpenAI (Plus / Pro) | 5-hour limit (lowest of the plan's rate-limit windows) | Uses your Codex CLI login (`~/.codex/auth.json`) to query the ChatGPT usage endpoint. Requires being logged into the Codex CLI. |
 
-A provider's section only appears when a logged-in account is found, and the first refresh may show a Keychain permission prompt for the Claude Code credentials — choose "Always Allow" to silence it.
+A provider's section only appears when its tool is found on the machine. If the tool is installed but not signed in (or the session has expired), a greyed-out card is shown instead of live usage. The first refresh may show a Keychain permission prompt for the Claude Code credentials — choose "Always Allow" to silence it.
 
 ## Installation
 

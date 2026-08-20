@@ -6,34 +6,36 @@ struct ModelCardView: View {
     @State private var timeString: String = "Calculating..."
     @State private var timer: AnyCancellable?
     @State private var animatedProgress: CGFloat = 0.0
-    
+
+    private var isUnavailable: Bool { bucket.unavailableReason != nil }
+
     private var topRow: some View {
         HStack {
             HStack(spacing: 6) {
-                Image(systemName: "sparkles")
+                Image(systemName: isUnavailable ? "lock.fill" : "sparkles")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(bucket.progressColor)
-                
+                    .foregroundColor(isUnavailable ? .secondary : bucket.progressColor)
+
                 Text(bucket.displayName)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                    .foregroundColor(isUnavailable ? .secondary : .primary)
             }
-            
+
             Spacer()
-            
-            Text("\(bucket.remainingPercentage)%")
+
+            Text(isUnavailable ? "—" : "\(bucket.remainingPercentage)%")
                 .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundColor(bucket.progressColor)
+                .foregroundColor(isUnavailable ? .secondary : bucket.progressColor)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(bucket.progressColor.opacity(0.15))
+                .background((isUnavailable ? Color.secondary : bucket.progressColor).opacity(0.15))
                 .clipShape(Capsule())
                 .overlay(
-                    Capsule().stroke(bucket.progressColor.opacity(0.3), lineWidth: 0.5)
+                    Capsule().stroke((isUnavailable ? Color.secondary : bucket.progressColor).opacity(0.3), lineWidth: 0.5)
                 )
         }
     }
-    
+
     private var middleRow: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
@@ -44,13 +46,15 @@ struct ModelCardView: View {
                     .overlay(
                         Capsule().stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
                     )
-                
+
                 // Progress Fill
-                Capsule()
-                    .fill(bucket.progressGradient)
-                    .frame(width: max(8, geometry.size.width * animatedProgress), height: 8)
-                    .animation(.spring(response: 0.8, dampingFraction: 0.75), value: animatedProgress)
-                    .shadow(color: bucket.progressColor.opacity(0.5), radius: 4, x: 0, y: 0)
+                if !isUnavailable {
+                    Capsule()
+                        .fill(bucket.progressGradient)
+                        .frame(width: max(8, geometry.size.width * animatedProgress), height: 8)
+                        .animation(.spring(response: 0.8, dampingFraction: 0.75), value: animatedProgress)
+                        .shadow(color: bucket.progressColor.opacity(0.5), radius: 4, x: 0, y: 0)
+                }
             }
         }
         .frame(height: 8)
@@ -64,10 +68,18 @@ struct ModelCardView: View {
             updateProgress()
         }
     }
-    
+
     private var bottomRow: some View {
         HStack(spacing: 5) {
-            if bucket.remainingPercentage == 100 {
+            if let reason = bucket.unavailableReason {
+                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Text(reason)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(.secondary)
+            } else if bucket.remainingPercentage == 100 {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(Color(red: 0.2, green: 0.85, blue: 0.5))
@@ -101,6 +113,7 @@ struct ModelCardView: View {
             middleRow
             bottomRow
         }
+        .opacity(isUnavailable ? 0.65 : 1.0)
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)

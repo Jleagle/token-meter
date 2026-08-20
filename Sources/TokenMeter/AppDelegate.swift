@@ -71,8 +71,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         
         var selectedBucket: QuotaBucket?
         if targetId == "auto" {
-            // Find lowest percentage bucket
-            selectedBucket = buckets.min(by: { $0.remainingPercentage < $1.remainingPercentage })
+            // Find lowest percentage bucket, ignoring greyed-out placeholders
+            selectedBucket = buckets
+                .filter { $0.unavailableReason == nil }
+                .min(by: { $0.remainingPercentage < $1.remainingPercentage })
         } else {
             selectedBucket = buckets.first(where: { $0.modelId == targetId })
         }
