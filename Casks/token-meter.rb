@@ -1,6 +1,6 @@
 cask "token-meter" do
-  version "1.4.0"
-  sha256 "f7955de0407a5996f280c2ff6fc93b19e2d3e8dd03e339ba6cf98efa34b12032"
+  version "1.5.0"
+  sha256 "c9801b175f357c45fd441fbab78214497b3515dc4280b3488db47c0de24af689"
 
   url "https://github.com/jleagle/token-meter/releases/download/v#{version}/TokenMeter.zip"
   name "TokenMeter"
