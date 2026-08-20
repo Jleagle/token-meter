@@ -4,8 +4,6 @@ struct SettingsView: View {
     @StateObject private var settings = SettingsManager.shared
     @StateObject private var quotaService = QuotaService.shared
     @Environment(\.presentationMode) var presentationMode
-    @State private var budgetString: String = ""
-    @State private var openAiBudgetString: String = ""
     
     private var headerSection: some View {
         HStack(spacing: 12) {
@@ -34,7 +32,7 @@ struct SettingsView: View {
                         .background(Color.primary.opacity(0.08))
                         .clipShape(Capsule())
                 }
-                Text("Configure menu bar display, Anthropic CLI & API tracking")
+                Text("Configure menu bar display & refresh rate")
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
@@ -55,10 +53,9 @@ struct SettingsView: View {
                 Divider()
                 Text("Gemini • 5-Hour Limit").tag("gemini-pro-5h")
                 Text("Gemini • Weekly Limit").tag("gemini-ultra-weekly")
-                Text("Claude Pro • 5-Hour Limit").tag("official-claude-cli-5h")
-                Text("Anthropic API • USD Budget").tag("official-anthropic-api")
+                Text("Claude • 5-Hour Limit").tag("official-claude-cli-5h")
+                Text("Claude • Weekly Limit").tag("official-claude-weekly")
                 Text("Codex / OpenAI • 5-Hour Limit").tag("official-codex-cli-5h")
-                Text("OpenAI API • USD Budget").tag("official-openai-api")
             }
         }
         .labelsHidden()
@@ -141,110 +138,6 @@ struct SettingsView: View {
         )
     }
     
-    private var claudeApiFields: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Anthropic API Key")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                SecureField("sk-ant-...", text: $settings.anthropicApiKey)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(size: 13, design: .monospaced))
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Monthly Dollar Budget ($ USD)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                TextField("50.00", text: $budgetString)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(size: 13, design: .monospaced))
-                    .onChange(of: budgetString) { val in
-                        if let num = Double(val), num > 0 {
-                            settings.monthlyBudget = num
-                        }
-                    }
-            }
-        }
-    }
-    
-    private var claudeApiSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("CLAUDE DEVELOPER API")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundColor(Color(NSColor.systemOrange))
-            
-            claudeApiFields
-            
-            Text("Queries console.anthropic.com to track your monthly API spend against your budget.")
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.primary.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-    }
-    
-    private var codexApiFields: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("OpenAI / Codex API Key")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                SecureField("sk-... or sk-proj-...", text: $settings.openAiApiKey)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(size: 13, design: .monospaced))
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Monthly Dollar Budget ($ USD)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                TextField("50.00", text: $openAiBudgetString)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .font(.system(size: 13, design: .monospaced))
-                    .onChange(of: openAiBudgetString) { val in
-                        if let num = Double(val), num > 0 {
-                            settings.openAiMonthlyBudget = num
-                        }
-                    }
-            }
-        }
-    }
-    
-    private var codexApiSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("CODEX DEVELOPER API")
-                .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                .foregroundColor(Color(NSColor.systemGreen))
-            
-            codexApiFields
-            
-            Text("Queries platform.openai.com to track your monthly API spend against your budget.")
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.primary.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-    }
-    
     private var buttonsSection: some View {
         HStack {
             Button("Close") {
@@ -278,13 +171,9 @@ struct SettingsView: View {
                 Divider()
                 
                 menuBarDisplaySection
-                
+
                 refreshRateSection
-                
-                claudeApiSection
-                
-                codexApiSection
-                
+
                 Spacer(minLength: 4)
                 
                 Divider()
@@ -293,10 +182,6 @@ struct SettingsView: View {
             }
             .padding(24)
         }
-        .frame(minWidth: 500, minHeight: 600)
-        .onAppear {
-            budgetString = String(format: "%.2f", settings.monthlyBudget)
-            openAiBudgetString = String(format: "%.2f", settings.openAiMonthlyBudget)
-        }
+        .frame(minWidth: 500, minHeight: 400)
     }
 }

@@ -1,5 +1,10 @@
 import SwiftUI
 
+final class PopoverSizing: ObservableObject {
+    static let shared = PopoverSizing()
+    @Published var maxTotalHeight: CGFloat = 600
+}
+
 private struct ContentHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -9,9 +14,10 @@ private struct ContentHeightKey: PreferenceKey {
 
 struct PopoverRootView: View {
     @StateObject private var service = QuotaService.shared
+    @ObservedObject private var sizing = PopoverSizing.shared
     @State private var contentHeight: CGFloat = 200
     
-    private var antigravityBuckets: [QuotaBucket] {
+    private var geminiBuckets: [QuotaBucket] {
         service.buckets
             .filter { !$0.modelId.hasPrefix("official-") }
             .sorted {
@@ -24,7 +30,7 @@ struct PopoverRootView: View {
     
     private var officialClaudeBuckets: [QuotaBucket] {
         service.buckets
-            .filter { $0.modelId.hasPrefix("official-claude") || $0.modelId == "official-anthropic-api" }
+            .filter { $0.modelId.hasPrefix("official-claude") }
             .sorted {
                 if $0.remainingPercentage == $1.remainingPercentage {
                     return $0.displayName < $1.displayName
@@ -35,7 +41,7 @@ struct PopoverRootView: View {
     
     private var officialCodexBuckets: [QuotaBucket] {
         service.buckets
-            .filter { $0.modelId.hasPrefix("official-codex") || $0.modelId == "official-openai-api" }
+            .filter { $0.modelId.hasPrefix("official-codex") }
             .sorted {
                 if $0.remainingPercentage == $1.remainingPercentage {
                     return $0.displayName < $1.displayName
@@ -96,20 +102,20 @@ struct PopoverRootView: View {
     
     @ViewBuilder
     private var bucketsListView: some View {
-        if !antigravityBuckets.isEmpty {
+        if !geminiBuckets.isEmpty {
             SectionHeaderView(
-                title: "Antigravity",
+                title: "Gemini",
                 icon: "cpu.fill",
                 color: Color(NSColor.systemBlue)
             )
-            
-            ForEach(antigravityBuckets) { bucket in
+
+            ForEach(geminiBuckets) { bucket in
                 ModelCardView(bucket: bucket)
             }
         }
         
         if !officialClaudeBuckets.isEmpty {
-            if !antigravityBuckets.isEmpty {
+            if !geminiBuckets.isEmpty {
                 Spacer().frame(height: 6)
             }
             
@@ -125,7 +131,7 @@ struct PopoverRootView: View {
         }
         
         if !officialCodexBuckets.isEmpty {
-            if !antigravityBuckets.isEmpty || !officialClaudeBuckets.isEmpty {
+            if !geminiBuckets.isEmpty || !officialClaudeBuckets.isEmpty {
                 Spacer().frame(height: 6)
             }
             
@@ -142,8 +148,8 @@ struct PopoverRootView: View {
     }
     
     private var maxContentHeight: CGFloat {
-        let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
-        return max(400, screenHeight - 140)
+        // Header + footer + dividers take ~110pt of the popover's total height
+        max(300, sizing.maxTotalHeight - 110)
     }
     
     private var contentArea: some View {

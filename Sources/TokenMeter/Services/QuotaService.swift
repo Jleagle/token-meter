@@ -65,16 +65,16 @@ class QuotaService: ObservableObject {
                 // If local language server is dormant, wake it up and retry
                 wakeUpLanguageServer()
                 try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 sec
-                
+
                 if let summaryBuckets = await fetchFromLanguageServer(), !summaryBuckets.isEmpty {
                     agyBuckets = summaryBuckets
                 }
             }
             
-            // 2. Fetch Official Claude Buckets (CLI & API Key)
+            // 2. Fetch Official Claude Buckets (plan usage)
             let claudeBuckets = await fetchOfficialClaudeBuckets()
             
-            // 3. Fetch Official Codex / OpenAI Buckets (CLI & API Key)
+            // 3. Fetch Official Codex / OpenAI Buckets (plan usage)
             let codexBuckets = await fetchOfficialCodexBuckets()
             
             let combined = agyBuckets + claudeBuckets + codexBuckets
@@ -101,78 +101,124 @@ class QuotaService: ObservableObject {
     // MARK: - Official Claude Integration
     
     private func fetchOfficialClaudeBuckets() async -> [QuotaBucket] {
-        var buckets: [QuotaBucket] = []
-        let settings = SettingsManager.shared
-        
-        // 1. Official Claude CLI / Subscription (5-Hour Window)
-        let cliBucket = QuotaBucket(
-            resetTime: calculateFiveHourResetTime(),
-            tokenType: "5h",
-            modelId: "official-claude-cli-5h",
-            remainingFraction: 1.0,
-            remainingAmount: nil,
-            maxAmount: nil,
-            customDisplayName: "Claude Pro • 5-Hour Limit"
-        )
-        buckets.append(cliBucket)
-        
-        // 2. Official Anthropic API Key (Dollar Spend / Budget)
-        let apiKey = settings.anthropicApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !apiKey.isEmpty {
-            let budget = settings.monthlyBudget > 0 ? settings.monthlyBudget : 50.0
-            let spent = await fetchAnthropicApiSpend(apiKey: apiKey)
-            let remaining = max(0.0, budget - spent)
-            let fraction = max(0.0, min(1.0, remaining / budget))
-            
-            let spentStr = String(format: "$%.2f", spent)
-            let budgetStr = String(format: "$%.2f", budget)
-            
-            let apiBucket = QuotaBucket(
-                resetTime: calculateNextMonthResetTime(),
-                tokenType: "usd",
-                modelId: "official-anthropic-api",
-                remainingFraction: fraction,
-                remainingAmount: Int(remaining * 100),
-                maxAmount: Int(budget * 100),
-                customDisplayName: "Anthropic API • \(spentStr) / \(budgetStr)"
-            )
-            buckets.append(apiBucket)
+        // Only plan accounts are supported: usage comes from the Claude Code
+        // OAuth session, no bucket is shown when no logged-in plan is found
+        guard let creds = loadClaudeOAuthCredentials(),
+              let url = URL(string: "https://api.anthropic.com/api/oauth/usage") else { return [] }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(creds.token)", forHTTPHeaderField: "Authorization")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.timeoutInterval = 4.0
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
         }
-        
+
+        let planName = claudePlanDisplayName(creds.plan)
+        var buckets: [QuotaBucket] = []
+
+        if let window = json["five_hour"] as? [String: Any],
+           let utilization = (window["utilization"] as? NSNumber)?.doubleValue {
+            buckets.append(QuotaBucket(
+                resetTime: normalizeResetTime(window["resets_at"] as? String),
+                tokenType: "5h",
+                modelId: "official-claude-cli-5h",
+                remainingFraction: max(0.0, min(1.0, (100.0 - utilization) / 100.0)),
+                remainingAmount: nil,
+                maxAmount: nil,
+                customDisplayName: "\(planName) • 5-Hour Limit"
+            ))
+        }
+
+        if let window = json["seven_day"] as? [String: Any],
+           let utilization = (window["utilization"] as? NSNumber)?.doubleValue {
+            buckets.append(QuotaBucket(
+                resetTime: normalizeResetTime(window["resets_at"] as? String),
+                tokenType: "weekly",
+                modelId: "official-claude-weekly",
+                remainingFraction: max(0.0, min(1.0, (100.0 - utilization) / 100.0)),
+                remainingAmount: nil,
+                maxAmount: nil,
+                customDisplayName: "\(planName) • Weekly Limit"
+            ))
+        }
+
         return buckets
     }
-    
-    private func fetchAnthropicApiSpend(apiKey: String) async -> Double {
-        guard let url = URL(string: "https://api.anthropic.com/v1/organizations/cost") else { return 0.0 }
-        do {
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-            request.timeoutInterval = 4.0
-            
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode) {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let totalCost = json["total_cost"] as? Double {
-                    return totalCost
-                }
+
+    private func loadClaudeOAuthCredentials() -> (token: String, plan: String)? {
+        // Claude Code stores its OAuth session in the login keychain on macOS,
+        // with ~/.claude/.credentials.json as the fallback location
+        var jsonData: Data?
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        if (try? process.run()) != nil {
+            let output = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                jsonData = output
             }
-        } catch {
-            // ignore
         }
-        return 0.0
+
+        if jsonData == nil {
+            let credsPath = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/.credentials.json")
+            jsonData = try? Data(contentsOf: credsPath)
+        }
+
+        guard let data = jsonData,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let oauth = json["claudeAiOauth"] as? [String: Any],
+              let token = (oauth["accessToken"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !token.isEmpty else {
+            return nil
+        }
+
+        return (token, (oauth["subscriptionType"] as? String) ?? "")
+    }
+
+    private func claudePlanDisplayName(_ subscriptionType: String) -> String {
+        switch subscriptionType.lowercased() {
+        case "pro":
+            return "Claude Pro"
+        case "max":
+            return "Claude Max"
+        case "team":
+            return "Claude Team"
+        case "enterprise":
+            return "Claude Enterprise"
+        case "":
+            return "Claude"
+        default:
+            return "Claude \(subscriptionType.capitalized)"
+        }
+    }
+
+    private func normalizeResetTime(_ raw: String?) -> String {
+        guard var value = raw, !value.isEmpty else { return "" }
+        // The API returns microsecond precision, which ISO8601DateFormatter rejects
+        if let dotRange = value.range(of: #"\.\d+"#, options: .regularExpression) {
+            value.removeSubrange(dotRange)
+        }
+        return value
     }
     
     // MARK: - Official Codex / OpenAI Integration
     
     private func fetchOfficialCodexBuckets() async -> [QuotaBucket] {
-        var buckets: [QuotaBucket] = []
-        let settings = SettingsManager.shared
-        
-        // 1. Official Codex / OpenAI CLI & Pro (5-Hour Window)
-        let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage()
-        let cliBucket = QuotaBucket(
+        // Only plan accounts are supported: no bucket is shown unless the
+        // Codex CLI is logged in and real usage was fetched
+        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage() else { return [] }
+
+        return [QuotaBucket(
             resetTime: resetTimeStr,
             tokenType: "5h",
             modelId: "official-codex-cli-5h",
@@ -180,127 +226,81 @@ class QuotaService: ObservableObject {
             remainingAmount: nil,
             maxAmount: nil,
             customDisplayName: planName
-        )
-        buckets.append(cliBucket)
-        
-        // 2. Official OpenAI / Codex API Key (Dollar Spend / Budget)
-        let apiKey = settings.openAiApiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !apiKey.isEmpty {
-            let budget = settings.openAiMonthlyBudget > 0 ? settings.openAiMonthlyBudget : 50.0
-            let spent = await fetchOpenAiApiSpend(apiKey: apiKey)
-            let remaining = max(0.0, budget - spent)
-            let fraction = max(0.0, min(1.0, remaining / budget))
-            
-            let spentStr = String(format: "$%.2f", spent)
-            let budgetStr = String(format: "$%.2f", budget)
-            
-            let apiBucket = QuotaBucket(
-                resetTime: calculateNextMonthResetTime(),
-                tokenType: "usd",
-                modelId: "official-openai-api",
-                remainingFraction: fraction,
-                remainingAmount: Int(remaining * 100),
-                maxAmount: Int(budget * 100),
-                customDisplayName: "OpenAI API • \(spentStr) / \(budgetStr)"
-            )
-            buckets.append(apiBucket)
-        }
-        
-        return buckets
+        )]
     }
-    
-    private func fetchCodexCliUsage() async -> (Double, String, String) {
-        var fraction = 1.0
-        var resetTimeStr = calculateFiveHourResetTime()
-        var planName = "Codex / OpenAI • 5-Hour Limit"
-        
+
+    private func fetchCodexCliUsage() async -> (Double, String, String)? {
         let authPath = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/auth.json")
         guard let data = try? Data(contentsOf: authPath),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let token = json["access_token"] as? String, !token.isEmpty else {
-            return (fraction, resetTimeStr, planName)
+            return nil
         }
-        
+
         guard let url = URL(string: "https://chatgpt.com/backend-api/wham/usage") else {
-            return (fraction, resetTimeStr, planName)
+            return nil
         }
-        
+
+        var fraction = 1.0
+        var resetTimeStr = calculateFiveHourResetTime()
+        var planName = "Codex / OpenAI • 5-Hour Limit"
+
         do {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             request.timeoutInterval = 4.0
-            
+
             let (responseData, response) = try await URLSession.shared.data(for: request)
-            if let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode) {
-                if let usageJson = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] {
-                    if let planType = usageJson["plan_type"] as? String {
-                        if planType.lowercased() == "plus" {
-                            planName = "Codex Plus • 5-Hour Limit"
-                        } else if planType.lowercased() == "pro" {
-                            planName = "Codex Pro • 5-Hour Limit"
-                        } else if planType.lowercased() == "free" {
-                            planName = "Codex Free • Limit"
-                        }
+            guard let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode),
+                  let usageJson = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+                return nil
+            }
+
+            if let planType = usageJson["plan_type"] as? String {
+                if planType.lowercased() == "plus" {
+                    planName = "Codex Plus • 5-Hour Limit"
+                } else if planType.lowercased() == "pro" {
+                    planName = "Codex Pro • 5-Hour Limit"
+                } else if planType.lowercased() == "free" {
+                    planName = "Codex Free • Limit"
+                }
+            }
+
+            if let rateLimit = usageJson["rate_limit"] as? [String: Any] {
+                if let primary = rateLimit["primary_window"] as? [String: Any] {
+                    if let usedPct = (primary["used_percent"] as? NSNumber)?.doubleValue {
+                        fraction = max(0.0, min(1.0, (100.0 - usedPct) / 100.0))
                     }
-                    
-                    if let rateLimit = usageJson["rate_limit"] as? [String: Any] {
-                        if let primary = rateLimit["primary_window"] as? [String: Any] {
-                            if let usedPct = (primary["used_percent"] as? NSNumber)?.doubleValue {
-                                fraction = max(0.0, min(1.0, (100.0 - usedPct) / 100.0))
-                            }
-                            if let resetAt = (primary["reset_at"] as? NSNumber)?.doubleValue, resetAt > 0 {
+                    if let resetAt = (primary["reset_at"] as? NSNumber)?.doubleValue, resetAt > 0 {
+                        let resetDate = Date(timeIntervalSince1970: resetAt)
+                        let formatter = ISO8601DateFormatter()
+                        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        resetTimeStr = formatter.string(from: resetDate)
+                    }
+                }
+                if let secondary = rateLimit["secondary_window"] as? [String: Any] {
+                    if let usedPct = (secondary["used_percent"] as? NSNumber)?.doubleValue {
+                        let secFraction = max(0.0, min(1.0, (100.0 - usedPct) / 100.0))
+                        if secFraction < fraction {
+                            fraction = secFraction
+                            if let resetAt = (secondary["reset_at"] as? NSNumber)?.doubleValue, resetAt > 0 {
                                 let resetDate = Date(timeIntervalSince1970: resetAt)
                                 let formatter = ISO8601DateFormatter()
                                 formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                                 resetTimeStr = formatter.string(from: resetDate)
                             }
                         }
-                        if let secondary = rateLimit["secondary_window"] as? [String: Any] {
-                            if let usedPct = (secondary["used_percent"] as? NSNumber)?.doubleValue {
-                                let secFraction = max(0.0, min(1.0, (100.0 - usedPct) / 100.0))
-                                if secFraction < fraction {
-                                    fraction = secFraction
-                                    if let resetAt = (secondary["reset_at"] as? NSNumber)?.doubleValue, resetAt > 0 {
-                                        let resetDate = Date(timeIntervalSince1970: resetAt)
-                                        let formatter = ISO8601DateFormatter()
-                                        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                                        resetTimeStr = formatter.string(from: resetDate)
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
         } catch {
-            // ignore
+            return nil
         }
-        
+
         return (fraction, resetTimeStr, planName)
     }
-    
-    private func fetchOpenAiApiSpend(apiKey: String) async -> Double {
-        guard let url = URL(string: "https://api.openai.com/v1/dashboard/billing/usage") else { return 0.0 }
-        do {
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request.timeoutInterval = 4.0
-            
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode) {
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let totalUsage = json["total_usage"] as? Double {
-                    return totalUsage / 100.0 // OpenAI dashboard reports in cents
-                }
-            }
-        } catch {
-            // ignore
-        }
-        return 0.0
-    }
-    
+
     private func calculateFiveHourResetTime() -> String {
         let now = Date()
         let calendar = Calendar.current
@@ -321,23 +321,6 @@ class QuotaService: ObservableObject {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             return formatter.string(from: nextDate)
-        }
-        return ""
-    }
-    
-    private func calculateNextMonthResetTime() -> String {
-        let now = Date()
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month], from: now)
-        components.month = (components.month ?? 1) + 1
-        components.day = 1
-        components.hour = 0
-        components.minute = 0
-        components.second = 0
-        if let nextMonth = calendar.date(from: components) {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            return formatter.string(from: nextMonth)
         }
         return ""
     }
@@ -403,7 +386,15 @@ class QuotaService: ObservableObject {
                         } else if let bName = sb.displayName, !bName.isEmpty, baseName != bName {
                             customName = "\(baseName) (\(bName))"
                         }
-                        
+
+                        // Only Gemini quotas are tracked; Antigravity also reports
+                        // Claude/GPT buckets which are ignored
+                        let haystack = "\(groupName) \(bId) \(customName)".lowercased()
+                        let name = customName.lowercased()
+                        guard haystack.contains("gemini"),
+                              !name.contains("claude"),
+                              !name.contains("gpt") else { continue }
+
                         let bucket = QuotaBucket(
                             resetTime: sb.resetTime,
                             tokenType: win,
