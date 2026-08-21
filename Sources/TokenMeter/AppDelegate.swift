@@ -35,7 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // Initialize Menu Bar Item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "TokenMeter") {
+            if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
                 image.isTemplate = true
                 button.image = image
             } else {
@@ -61,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         
         if targetId == "none" || buckets.isEmpty {
             button.title = ""
-            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "TokenMeter") {
+            if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
                 image.isTemplate = true
                 button.image = image
             }
@@ -88,15 +88,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if let bucket = selectedBucket {
             button.title = paceMode ? " \(bucket.effectivePacePercentage)%" : " \(bucket.remainingPercentage)%"
             
-            let iconName = bucket.modelId.hasPrefix("official-") ? "sparkle" : "cpu"
-            if let image = NSImage(systemSymbolName: iconName, accessibilityDescription: bucket.displayName) {
+            if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: bucket.displayName) {
                 image.isTemplate = true
                 button.image = image
             }
             button.imagePosition = .imageLeft
         } else {
             button.title = ""
-            if let image = NSImage(systemSymbolName: "cpu", accessibilityDescription: "Antigravity Usage") {
+            if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
                 image.isTemplate = true
                 button.image = image
             }

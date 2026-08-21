@@ -114,8 +114,6 @@ class QuotaService: ObservableObject {
             return [unavailableBucket(modelId: "official-claude-unavailable", name: "Claude", reason: "Not signed in to Claude Code")]
         }
 
-        let planName = claudePlanDisplayName(creds.plan)
-
         if let last = cachedClaudeFetchTime, Date().timeIntervalSince(last) < officialUsageMinInterval,
            !cachedClaudeBuckets.isEmpty {
             return cachedClaudeBuckets
@@ -132,20 +130,20 @@ class QuotaService: ObservableObject {
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let httpRes = response as? HTTPURLResponse else {
             return cachedClaudeBuckets.isEmpty
-                ? [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+                ? [unavailableBucket(modelId: "official-claude-unavailable", name: "Claude", reason: "Usage currently unavailable")]
                 : cachedClaudeBuckets
         }
 
         if httpRes.statusCode == 401 || httpRes.statusCode == 403 {
             cachedClaudeBuckets = []
             cachedClaudeFetchTime = nil
-            return [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Session expired — open Claude Code to sign in")]
+            return [unavailableBucket(modelId: "official-claude-unavailable", name: "Claude", reason: "Session expired — open Claude Code to sign in")]
         }
 
         guard (200...299).contains(httpRes.statusCode),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return cachedClaudeBuckets.isEmpty
-                ? [unavailableBucket(modelId: "official-claude-unavailable", name: planName, reason: "Usage currently unavailable")]
+                ? [unavailableBucket(modelId: "official-claude-unavailable", name: "Claude", reason: "Usage currently unavailable")]
                 : cachedClaudeBuckets
         }
 
@@ -160,7 +158,7 @@ class QuotaService: ObservableObject {
                 remainingFraction: max(0.0, min(1.0, (100.0 - utilization) / 100.0)),
                 remainingAmount: nil,
                 maxAmount: nil,
-                customDisplayName: "\(planName) • 5-Hour Limit"
+                customDisplayName: "Claude - 5 Hour"
             ))
         }
 
@@ -173,7 +171,7 @@ class QuotaService: ObservableObject {
                 remainingFraction: max(0.0, min(1.0, (100.0 - utilization) / 100.0)),
                 remainingAmount: nil,
                 maxAmount: nil,
-                customDisplayName: "\(planName) • Weekly Limit"
+                customDisplayName: "Claude - Weekly"
             ))
         }
 
@@ -230,23 +228,6 @@ class QuotaService: ObservableObject {
         return (token, (oauth["subscriptionType"] as? String) ?? "")
     }
 
-    private func claudePlanDisplayName(_ subscriptionType: String) -> String {
-        switch subscriptionType.lowercased() {
-        case "pro":
-            return "Claude Pro"
-        case "max":
-            return "Claude Max"
-        case "team":
-            return "Claude Team"
-        case "enterprise":
-            return "Claude Enterprise"
-        case "":
-            return "Claude"
-        default:
-            return "Claude \(subscriptionType.capitalized)"
-        }
-    }
-
     private func normalizeResetTime(_ raw: String?) -> String {
         guard var value = raw, !value.isEmpty else { return "" }
         // The API returns microsecond precision, which ISO8601DateFormatter rejects
@@ -268,7 +249,7 @@ class QuotaService: ObservableObject {
         guard let data = try? Data(contentsOf: authPath),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let token = json["access_token"] as? String, !token.isEmpty else {
-            return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Not signed in to the Codex CLI")]
+            return [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex", reason: "Not signed in to the Codex CLI")]
         }
 
         if let last = cachedCodexFetchTime, Date().timeIntervalSince(last) < officialUsageMinInterval,
@@ -276,9 +257,9 @@ class QuotaService: ObservableObject {
             return cachedCodexBuckets
         }
 
-        guard let (fraction, resetTimeStr, planName) = await fetchCodexCliUsage(token: token) else {
+        guard let (fraction, resetTimeStr) = await fetchCodexCliUsage(token: token) else {
             return cachedCodexBuckets.isEmpty
-                ? [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex / OpenAI", reason: "Usage currently unavailable")]
+                ? [unavailableBucket(modelId: "official-codex-unavailable", name: "Codex", reason: "Usage currently unavailable")]
                 : cachedCodexBuckets
         }
 
@@ -289,21 +270,20 @@ class QuotaService: ObservableObject {
             remainingFraction: fraction,
             remainingAmount: nil,
             maxAmount: nil,
-            customDisplayName: planName
+            customDisplayName: "Codex - 5 Hour"
         )]
         cachedCodexBuckets = buckets
         cachedCodexFetchTime = Date()
         return buckets
     }
 
-    private func fetchCodexCliUsage(token: String) async -> (Double, String, String)? {
+    private func fetchCodexCliUsage(token: String) async -> (Double, String)? {
         guard let url = URL(string: "https://chatgpt.com/backend-api/wham/usage") else {
             return nil
         }
 
         var fraction = 1.0
         var resetTimeStr = calculateFiveHourResetTime()
-        var planName = "Codex / OpenAI • 5-Hour Limit"
 
         do {
             var request = URLRequest(url: url)
@@ -315,16 +295,6 @@ class QuotaService: ObservableObject {
             guard let httpRes = response as? HTTPURLResponse, (200...299).contains(httpRes.statusCode),
                   let usageJson = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
                 return nil
-            }
-
-            if let planType = usageJson["plan_type"] as? String {
-                if planType.lowercased() == "plus" {
-                    planName = "Codex Plus • 5-Hour Limit"
-                } else if planType.lowercased() == "pro" {
-                    planName = "Codex Pro • 5-Hour Limit"
-                } else if planType.lowercased() == "free" {
-                    planName = "Codex Free • Limit"
-                }
             }
 
             if let rateLimit = usageJson["rate_limit"] as? [String: Any] {
@@ -358,7 +328,7 @@ class QuotaService: ObservableObject {
             return nil
         }
 
-        return (fraction, resetTimeStr, planName)
+        return (fraction, resetTimeStr)
     }
 
     private func calculateFiveHourResetTime() -> String {
@@ -425,35 +395,16 @@ class QuotaService: ObservableObject {
                     for sb in sumBuckets {
                         let bId = sb.bucketId ?? UUID().uuidString
                         let win = sb.window ?? ""
-                        let winLabel = win == "weekly" ? "Weekly Limit" : (win == "5h" ? "5-Hour Limit" : "")
-                        
-                        var baseName = ""
-                        if let bName = sb.displayName, !bName.isEmpty, bName.lowercased() != "default", bName.lowercased() != "models", bName.lowercased() != "gemini", bName.lowercased() != "gemini models" {
-                            baseName = bName
-                            if !baseName.lowercased().hasPrefix(groupName.lowercased()) && !baseName.lowercased().hasPrefix("gemini") && !baseName.lowercased().hasPrefix("claude") {
-                                baseName = "\(groupName) \(baseName)"
-                            }
-                        } else {
-                            let tempBucket = QuotaBucket(resetTime: nil, tokenType: nil, modelId: bId, remainingFraction: nil, remainingAmount: nil, maxAmount: nil, customDisplayName: nil)
-                            baseName = tempBucket.displayName
-                            baseName = baseName.replacingOccurrences(of: " 5H", with: "", options: .caseInsensitive)
-                                               .replacingOccurrences(of: " Weekly", with: "", options: .caseInsensitive)
-                        }
-                        
-                        var customName = baseName
-                        if !winLabel.isEmpty {
-                            customName = "\(baseName) • \(winLabel)"
-                        } else if let bName = sb.displayName, !bName.isEmpty, baseName != bName {
-                            customName = "\(baseName) (\(bName))"
-                        }
 
                         // Only Gemini quotas are tracked; Antigravity also reports
                         // Claude/GPT buckets which are ignored
-                        let haystack = "\(groupName) \(bId) \(customName)".lowercased()
-                        let name = customName.lowercased()
-                        guard haystack.contains("gemini"),
-                              !name.contains("claude"),
-                              !name.contains("gpt") else { continue }
+                        let bucketText = "\(bId) \(sb.displayName ?? "")".lowercased()
+                        guard "\(groupName.lowercased()) \(bucketText)".contains("gemini"),
+                              !bucketText.contains("claude"),
+                              !bucketText.contains("gpt") else { continue }
+
+                        let winLabel = win == "weekly" ? "Weekly" : (win == "5h" ? "5 Hour" : "")
+                        let customName = winLabel.isEmpty ? "Gemini" : "Gemini - \(winLabel)"
 
                         let bucket = QuotaBucket(
                             resetTime: sb.resetTime,

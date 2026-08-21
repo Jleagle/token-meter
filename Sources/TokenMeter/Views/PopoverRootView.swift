@@ -121,7 +121,7 @@ struct PopoverRootView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                HeaderView(service: service)
+                HeaderView()
                 
                 Divider()
                 

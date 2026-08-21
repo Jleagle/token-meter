@@ -1,10 +1,7 @@
 import SwiftUI
 
 struct HeaderView: View {
-    @ObservedObject var service: QuotaService
-    @State private var pulseOpacity: Double = 0.5
-    @State private var rotationAngle: Double = 0.0
-    
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             // App Icon Badge
@@ -26,22 +23,9 @@ struct HeaderView: View {
             }
             
             // Title
-            HStack(spacing: 6) {
-                Text("TokenMeter")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
-                Circle()
-                    .fill(service.errorMessage == nil ? Color.green : Color.red)
-                    .frame(width: 7, height: 7)
-                    .opacity(pulseOpacity)
-                    .shadow(color: (service.errorMessage == nil ? Color.green : Color.red).opacity(0.6), radius: 4, x: 0, y: 0)
-                    .onAppear {
-                        withAnimation(Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
-                            pulseOpacity = 1.0
-                        }
-                    }
-            }
+            Text("TokenMeter")
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
             
             Spacer()
         }

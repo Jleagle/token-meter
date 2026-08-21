@@ -51,11 +51,11 @@ struct SettingsView: View {
                 }
             } else {
                 Divider()
-                Text("Gemini • 5-Hour Limit").tag("gemini-pro-5h")
-                Text("Gemini • Weekly Limit").tag("gemini-ultra-weekly")
-                Text("Claude • 5-Hour Limit").tag("official-claude-cli-5h")
-                Text("Claude • Weekly Limit").tag("official-claude-weekly")
-                Text("Codex / OpenAI • 5-Hour Limit").tag("official-codex-cli-5h")
+                Text("Gemini - 5 Hour").tag("gemini-pro-5h")
+                Text("Gemini - Weekly").tag("gemini-ultra-weekly")
+                Text("Claude - 5 Hour").tag("official-claude-cli-5h")
+                Text("Claude - Weekly").tag("official-claude-weekly")
+                Text("Codex - 5 Hour").tag("official-codex-cli-5h")
             }
         }
         .labelsHidden()
