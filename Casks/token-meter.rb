@@ -14,10 +14,8 @@ cask "token-meter" do
 
   app "TokenMeter.app"
 
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-cr", "#{appdir}/TokenMeter.app"],
-                   sudo: false
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-cr", "{{appdir}}/TokenMeter.app"]
   end
 
   zap trash: [
