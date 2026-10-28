@@ -12,9 +12,7 @@ struct QuotaRowView: View {
     private var isUnavailable: Bool { bucket.unavailableReason != nil }
 
     private var percentText: String {
-        if isUnavailable { return "—" }
-        if settings.usePaceMode { return "\(bucket.effectivePacePercentage)%" }
-        return "\(bucket.usedPercentage)%"
+        QuotaDisplay.percentText(for: bucket, paceMode: settings.usePaceMode)
     }
 
     private var accent: Color {
@@ -23,10 +21,11 @@ struct QuotaRowView: View {
         return bucket.progressColor
     }
 
-    private var usedFraction: CGFloat {
+    // The bar shows what is left, matching the number beside it
+    private var remainingFraction: CGFloat {
         if isUnavailable { return 0 }
         let remaining = bucket.remainingFraction ?? Double(bucket.remainingPercentage) / 100
-        return CGFloat(min(1, max(0, 1 - remaining)))
+        return CGFloat(min(1, max(0, remaining)))
     }
 
     private var detailText: String {
@@ -57,10 +56,10 @@ struct QuotaRowView: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.12))
-                    if !isUnavailable {
+                    if remainingFraction > 0 {
                         Capsule()
                             .fill(accent)
-                            .frame(width: max(6, geometry.size.width * usedFraction))
+                            .frame(width: max(6, geometry.size.width * remainingFraction))
                     }
                 }
             }

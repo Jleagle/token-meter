@@ -34,34 +34,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateMenuBarDisplay(buckets: [QuotaBucket], displayModelId: String) {
         guard let button = statusItem.button else { return }
-        let targetId = displayModelId.isEmpty ? "auto" : displayModelId
-
-        guard targetId != "none", !buckets.isEmpty else {
+        guard let title = QuotaDisplay.menuBarTitle(buckets: buckets, selection: displayModelId, paceMode: SettingsManager.shared.usePaceMode) else {
             showIconOnly(button)
             return
         }
-
-        let paceMode = SettingsManager.shared.usePaceMode
-        var selectedBucket: QuotaBucket?
-        if targetId == "auto" {
-            // Pick the most at-risk window, ignoring greyed-out placeholders:
-            // most quota used, or fastest burn rate in burn-rate mode
-            let candidates = buckets.filter { $0.unavailableReason == nil }
-            if paceMode {
-                selectedBucket = candidates.max(by: { $0.effectivePacePercentage < $1.effectivePacePercentage })
-            } else {
-                selectedBucket = candidates.max(by: { $0.usedPercentage < $1.usedPercentage })
-            }
-        } else {
-            selectedBucket = buckets.first(where: { $0.modelId == targetId })
-        }
-
-        guard let bucket = selectedBucket else {
-            showIconOnly(button)
-            return
-        }
-        button.title = paceMode ? " \(bucket.effectivePacePercentage)%" : " \(bucket.usedPercentage)%"
-        if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: bucket.displayName) {
+        button.title = " \(title)"
+        if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
             image.isTemplate = true
             button.image = image
         }
