@@ -38,10 +38,10 @@ final class QuotaDisplayTests: XCTestCase {
                 maxAmount: nil
             )
         }
-        XCTAssertEqual(QuotaDisplay.resetText(for: reset("weekly", in: 6 * 86400 + 3 * 3600), now: now), "Resets in 6d 3h (88%)")
-        XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: 90 * 60), now: now), "Resets in 1h 30m (30%)")
-        XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: 45), now: now), "Resets in 45s (0%)")
-        XCTAssertEqual(QuotaDisplay.resetText(for: reset(nil, in: 90 * 60), now: now), "Resets in 1h 30m")
+        XCTAssertEqual(QuotaDisplay.resetText(for: reset("weekly", in: 6 * 86400 + 3 * 3600), now: now), "6d 3h (88%)")
+        XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: 90 * 60), now: now), "1h 30m (30%)")
+        XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: 45), now: now), "45s (0%)")
+        XCTAssertEqual(QuotaDisplay.resetText(for: reset(nil, in: 90 * 60), now: now), "1h 30m")
         XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: -10), now: now), "Resetting now")
         XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: nil), now: now), "Reset time unknown")
     }

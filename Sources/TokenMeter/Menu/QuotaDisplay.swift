@@ -13,7 +13,7 @@ enum QuotaDisplay {
         guard let reset = bucket.resetDate else { return "Reset time unknown" }
         let remaining = reset.timeIntervalSince(now)
         guard remaining > 0 else { return "Resetting now" }
-        var text = "Resets in \(format(remaining))"
+        var text = format(remaining)
         if let duration = bucket.windowDuration {
             let percent = Int((min(1, remaining / duration) * 100).rounded())
             text += " (\(percent)%)"
