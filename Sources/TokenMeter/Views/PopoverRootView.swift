@@ -133,5 +133,6 @@ struct PopoverRootView: View {
             }
         }
         .frame(width: 330)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
