@@ -111,8 +111,12 @@ struct ModelCardView: View {
             }
             
             Spacer()
-            
-            if let type = bucket.tokenType {
+
+            if let note = bucket.staleNote {
+                Text(note)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(Color(NSColor.systemOrange))
+            } else if let type = bucket.tokenType {
                 Text(type == "usd" ? "USD Budget" : type.capitalized)
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundColor(.black.opacity(0.5))

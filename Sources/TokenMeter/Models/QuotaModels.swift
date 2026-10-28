@@ -3,17 +3,6 @@ import SwiftUI
 
 // MARK: - Quota Models
 
-struct QuotaResponse: Codable {
-    let buckets: [QuotaBucket]?
-    let error: QuotaError?
-}
-
-struct QuotaError: Codable {
-    let code: Int?
-    let message: String?
-    let status: String?
-}
-
 struct QuotaBucket: Codable, Identifiable {
     let resetTime: String?
     let tokenType: String?
@@ -25,6 +14,9 @@ struct QuotaBucket: Codable, Identifiable {
     // Set when the provider is installed but usage can't be fetched (not signed
     // in, expired session); the card renders greyed out with this text
     var unavailableReason: String? = nil
+    // Set when the card shows the last good values because the provider is
+    // currently rate limiting us
+    var staleNote: String? = nil
 
     var id: String { modelId }
     
@@ -165,72 +157,45 @@ struct QuotaBucket: Codable, Identifiable {
     }
     
     var resetDate: Date? {
-        guard let resetTime = resetTime else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: resetTime) {
-            return date
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: resetTime)
+        resetTime.flatMap(ISO8601.date(from:))
     }
 }
 
 // MARK: - Summary Quota Models
 
-struct QuotaSummaryResponseWrapper: Codable {
+// The language server wraps the summary in `response`; Cloud Code returns the bare payload
+struct QuotaSummaryEnvelope: Decodable {
     let response: QuotaSummaryPayload?
-}
-
-struct QuotaSummaryPayload: Codable {
     let groups: [QuotaSummaryGroup]?
 }
 
-struct QuotaSummaryGroup: Codable {
+struct QuotaSummaryPayload: Decodable {
+    let groups: [QuotaSummaryGroup]?
+}
+
+struct QuotaSummaryGroup: Decodable {
     let displayName: String?
-    let description: String?
     let buckets: [QuotaSummaryBucket]?
 }
 
-struct QuotaSummaryBucket: Codable {
+// Fields decode individually so one odd value never discards the whole summary
+struct QuotaSummaryBucket: Decodable {
     let bucketId: String?
-    let displayName: String?
-    let description: String?
     let window: String?
     let remainingFraction: Double?
     let resetTime: String?
-}
+    let disabled: Bool?
 
-// MARK: - Code Assist Tier Models
+    private enum CodingKeys: String, CodingKey {
+        case bucketId, window, remainingFraction, resetTime, disabled
+    }
 
-struct TierResponse: Codable {
-    let currentTier: TierDetail?
-    let allowedTiers: [TierDetail]?
-    let cloudaicompanionProject: String?
-    let paidTier: TierDetail?
-}
-
-struct TierDetail: Codable {
-    let id: String?
-    let name: String?
-    let description: String?
-}
-
-// MARK: - OAuth Models
-
-struct OAuthTokenFile: Codable {
-    let token: OAuthTokenDetail
-}
-
-struct OAuthTokenDetail: Codable {
-    let access_token: String?
-    let token_type: String?
-    let refresh_token: String?
-    let expiry: String?
-}
-
-struct OAuthRefreshResponse: Codable {
-    let access_token: String
-    let expires_in: Int?
-    let token_type: String?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        bucketId = try? container.decodeIfPresent(String.self, forKey: .bucketId)
+        window = try? container.decodeIfPresent(String.self, forKey: .window)
+        remainingFraction = try? container.decodeIfPresent(Double.self, forKey: .remainingFraction)
+        resetTime = try? container.decodeIfPresent(String.self, forKey: .resetTime)
+        disabled = try? container.decodeIfPresent(Bool.self, forKey: .disabled)
+    }
 }

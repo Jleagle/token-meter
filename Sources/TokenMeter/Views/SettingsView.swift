@@ -51,8 +51,8 @@ struct SettingsView: View {
                 }
             } else {
                 Divider()
-                Text("Gemini - 5 Hour").tag("gemini-pro-5h")
-                Text("Gemini - Weekly").tag("gemini-ultra-weekly")
+                Text("Gemini - 5 Hour").tag("gemini-5h")
+                Text("Gemini - Weekly").tag("gemini-weekly")
                 Text("Claude - 5 Hour").tag("official-claude-cli-5h")
                 Text("Claude - Weekly").tag("official-claude-weekly")
                 Text("Codex - 5 Hour").tag("official-codex-cli-5h")
