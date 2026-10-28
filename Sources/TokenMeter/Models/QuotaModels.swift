@@ -89,7 +89,7 @@ struct QuotaBucket: Codable, Identifiable {
 
     var usedPercentage: Int { max(0, 100 - remainingPercentage) }
 
-    private var windowDuration: TimeInterval? {
+    var windowDuration: TimeInterval? {
         switch tokenType {
         case "5h": return 5 * 3600
         case "weekly": return 7 * 86400

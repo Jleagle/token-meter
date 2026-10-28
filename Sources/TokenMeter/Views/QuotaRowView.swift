@@ -31,9 +31,7 @@ struct QuotaRowView: View {
     private var detailText: String {
         if let reason = bucket.unavailableReason { return reason }
         if let note = bucket.staleNote { return note }
-        guard let reset = bucket.resetDate else { return "Reset time unknown" }
-        let remaining = reset.timeIntervalSince(now)
-        return remaining <= 0 ? "Resetting now" : "Resets in \(Self.format(remaining))"
+        return QuotaDisplay.resetText(for: bucket, now: now)
     }
 
     private var detailColor: Color {
@@ -73,17 +71,5 @@ struct QuotaRowView: View {
         .frame(width: StatusMenuBuilder.rowWidth, alignment: .leading)
         .opacity(isUnavailable ? 0.7 : 1)
         .onReceive(ticker) { now = $0 }
-    }
-
-    private static func format(_ interval: TimeInterval) -> String {
-        let total = Int(interval)
-        let days = total / 86400
-        let hours = (total % 86400) / 3600
-        let minutes = (total % 3600) / 60
-        let seconds = total % 60
-        if days > 0 { return "\(days)d \(hours)h" }
-        if hours > 0 { return "\(hours)h \(minutes)m" }
-        if minutes > 0 { return "\(minutes)m \(seconds)s" }
-        return "\(seconds)s"
     }
 }
