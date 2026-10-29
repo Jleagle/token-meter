@@ -104,12 +104,11 @@ final class StatusMenuBuilder: NSObject {
         }
 
         menu.addItem(option("Auto", id: "auto"))
+        menu.addItem(option("None", id: "none"))
         menu.addItem(.separator())
         for bucket in buckets where bucket.unavailableReason == nil {
             menu.addItem(option(bucket.displayName, id: bucket.modelId))
         }
-        menu.addItem(.separator())
-        menu.addItem(option("None", id: "none"))
         return menu
     }
 
