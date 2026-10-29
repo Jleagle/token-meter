@@ -40,13 +40,14 @@ final class StatusMenuBuilderTests: XCTestCase {
         menu.items.map { $0.isSeparatorItem ? "---" : $0.title }
     }
 
-    func testGroupsRowsUnderProviderHeadersThenSettingsAndQuit() {
+    func testGroupsRowsUnderProviderHeadersThenSettingsMenuBarAndQuit() {
         let menu = builder.makeMenu(buckets: sample, errorMessage: nil)
-        XCTAssertEqual(titles(menu), ["Gemini", "5 Hour", "Claude", "5 Hour", "Weekly", "Fable Weekly", "Codex", "5 Hour", "---", "Settings", "Quit TokenMeter"])
+        XCTAssertEqual(titles(menu), ["Gemini", "5 Hour", "Claude", "5 Hour", "Weekly", "Fable Weekly", "Codex", "5 Hour", "---", "Settings", "Menu Bar", "Quit TokenMeter"])
         XCTAssertFalse(menu.items[0].isEnabled)
         XCTAssertNotNil(menu.items[1].view)
         XCTAssertNotNil(menu.items[9].submenu)
-        XCTAssertEqual(menu.items[10].keyEquivalent, "q")
+        XCTAssertNotNil(menu.items[10].submenu)
+        XCTAssertEqual(menu.items[11].keyEquivalent, "q")
     }
 
     func testPlaceholderRowIsDisabledAndTitledWithItsReason() {
@@ -58,7 +59,7 @@ final class StatusMenuBuilderTests: XCTestCase {
 
     func testEmptyStateShowsLoadingOrErrorLine() {
         let loading = builder.makeMenu(buckets: [], errorMessage: nil)
-        XCTAssertEqual(titles(loading), ["Loading usage…", "---", "Settings", "Quit TokenMeter"])
+        XCTAssertEqual(titles(loading), ["Loading usage…", "---", "Settings", "Menu Bar", "Quit TokenMeter"])
         XCTAssertFalse(loading.items[0].isEnabled)
 
         let failed = builder.makeMenu(buckets: [], errorMessage: "No usage sources found.")
@@ -66,21 +67,23 @@ final class StatusMenuBuilderTests: XCTestCase {
         XCTAssertFalse(failed.items[0].isEnabled)
     }
 
-    func testSettingsSubmenuReflectsCurrentSettings() throws {
+    func testSettingsSubmenuHoldsTheBurnRateToggle() throws {
         settings.usePaceMode = true
-        settings.toolbarDisplayModelId = "official-claude-weekly"
         let settingsMenu = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[9].submenu)
-        XCTAssertEqual(settingsMenu.items.map(\.title), ["Burn Rate", "Show in Menu Bar"])
+        XCTAssertEqual(settingsMenu.items.map(\.title), ["Burn Rate"])
         XCTAssertEqual(settingsMenu.items[0].state, .on)
+    }
 
-        let show = try XCTUnwrap(settingsMenu.items[1].submenu)
+    func testMenuBarSubmenuListsLiveWindowsAndChecksTheCurrentOne() throws {
+        settings.toolbarDisplayModelId = "official-claude-weekly"
+        let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[10].submenu)
         XCTAssertEqual(titles(show), ["Auto", "---", "Gemini - 5 Hour", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly", "Codex - 5 Hour", "---", "None"])
         XCTAssertEqual(show.items.map(\.state), [.off, .off, .off, .off, .on, .off, .off, .off, .off])
     }
 
-    func testShowInMenuBarOmitsPlaceholders() throws {
+    func testMenuBarSubmenuOmitsPlaceholders() throws {
         let menu = builder.makeMenu(buckets: sample + [bucket("gemini-unavailable", name: "Gemini", reason: "Usage currently unavailable")], errorMessage: nil)
-        let show = try XCTUnwrap(menu.items.first { $0.title == "Settings" }?.submenu?.items[1].submenu)
+        let show = try XCTUnwrap(menu.items.first { $0.title == "Menu Bar" }?.submenu)
         XCTAssertFalse(show.items.contains { $0.title == "Gemini" })
     }
 
@@ -94,7 +97,7 @@ final class StatusMenuBuilderTests: XCTestCase {
     }
 
     func testChoosingAMenuBarItemStoresItsModelId() throws {
-        let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[9].submenu?.items[1].submenu)
+        let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[10].submenu)
         let claudeWeekly = try XCTUnwrap(show.items.first { $0.title == "Claude - Weekly" })
         _ = claudeWeekly.target?.perform(claudeWeekly.action, with: claudeWeekly)
         XCTAssertEqual(settings.toolbarDisplayModelId, "official-claude-weekly")

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The status item's dropdown: quota rows under provider headers, a Settings submenu, and Quit.
+/// The status item's dropdown: quota rows under provider headers, the Settings and Menu Bar submenus, and Quit.
 @MainActor
 final class StatusMenuBuilder: NSObject {
     static let rowWidth: CGFloat = 280
@@ -37,8 +37,12 @@ final class StatusMenuBuilder: NSObject {
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
-        settingsItem.submenu = settingsMenu(buckets: buckets)
+        settingsItem.submenu = settingsMenu()
         menu.addItem(settingsItem)
+
+        let menuBarItem = NSMenuItem(title: "Menu Bar", action: nil, keyEquivalent: "")
+        menuBarItem.submenu = menuBarMenu(buckets: buckets)
+        menu.addItem(menuBarItem)
 
         let quit = NSMenuItem(title: "Quit TokenMeter", action: #selector(quit(_:)), keyEquivalent: "q")
         quit.target = self
@@ -74,7 +78,7 @@ final class StatusMenuBuilder: NSObject {
         return item
     }
 
-    private func settingsMenu(buckets: [QuotaBucket]) -> NSMenu {
+    private func settingsMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
@@ -82,14 +86,11 @@ final class StatusMenuBuilder: NSObject {
         burnRate.target = self
         burnRate.state = settings.usePaceMode ? .on : .off
         menu.addItem(burnRate)
-
-        let show = NSMenuItem(title: "Show in Menu Bar", action: nil, keyEquivalent: "")
-        show.submenu = showInMenuBarMenu(buckets: buckets)
-        menu.addItem(show)
         return menu
     }
 
-    private func showInMenuBarMenu(buckets: [QuotaBucket]) -> NSMenu {
+    /// Which window's number the status item shows: Auto, one of the live windows, or None for the icon alone.
+    private func menuBarMenu(buckets: [QuotaBucket]) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         let current = settings.toolbarDisplayModelId.isEmpty ? "auto" : settings.toolbarDisplayModelId
