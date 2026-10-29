@@ -14,6 +14,8 @@ Only plan/subscription accounts are supported — usage is read from the tools y
 
 Clicking the menu bar icon opens a menu with one line per quota window: the percent left, a bar, and when the window resets. At the bottom, the Settings submenu has "Show Burn Rate Instead" (how fast the window is being used, in place of the percent left) and the Menu Bar submenu picks which window's number appears in the menu bar: Auto follows the window most at risk, Latest follows the provider that most recently used quota, a named window pins that one, and None shows the icon alone.
 
+The Claude and Gemini marks in the menu are the Simple Icons versions (CC0); the marks belong to Anthropic and Google.
+
 A provider's section only appears when its tool is found on the machine. If the tool is installed but not signed in (or the session has expired), a greyed-out card is shown instead of live usage. The first refresh may show a Keychain permission prompt for the Claude Code credentials — choose "Always Allow" to silence it.
 
 ## Installation

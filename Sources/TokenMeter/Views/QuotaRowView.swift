@@ -38,11 +38,25 @@ struct QuotaRowView: View {
         bucket.staleNote != nil && !isUnavailable ? Color(NSColor.systemOrange) : .secondary
     }
 
+    @ViewBuilder
+    private var icon: some View {
+        let provider = QuotaProvider.of(bucket)
+        if let logo = ProviderLogo.image(for: provider) {
+            Image(nsImage: logo)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 13, height: 13)
+        } else {
+            Image(systemName: provider.symbolName)
+                .font(.system(size: 12, weight: .semibold))
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 7) {
-                Image(systemName: QuotaProvider.of(bucket).symbolName)
-                    .font(.system(size: 12, weight: .semibold))
+                icon
                     .foregroundColor(accent)
                     .frame(width: 16)
                 Text(QuotaProvider.shortName(for: bucket))
