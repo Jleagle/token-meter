@@ -82,7 +82,7 @@ final class StatusMenuBuilder: NSObject {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
-        let burnRate = NSMenuItem(title: "Burn Rate", action: #selector(toggleBurnRate(_:)), keyEquivalent: "")
+        let burnRate = NSMenuItem(title: "Show Burn Rate Instead", action: #selector(toggleBurnRate(_:)), keyEquivalent: "")
         burnRate.target = self
         burnRate.state = settings.usePaceMode ? .on : .off
         menu.addItem(burnRate)

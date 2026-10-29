@@ -70,7 +70,7 @@ final class StatusMenuBuilderTests: XCTestCase {
     func testSettingsSubmenuHoldsTheBurnRateToggle() throws {
         settings.usePaceMode = true
         let settingsMenu = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[9].submenu)
-        XCTAssertEqual(settingsMenu.items.map(\.title), ["Burn Rate"])
+        XCTAssertEqual(settingsMenu.items.map(\.title), ["Show Burn Rate Instead"])
         XCTAssertEqual(settingsMenu.items[0].state, .on)
     }
 
