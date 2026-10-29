@@ -46,35 +46,35 @@ final class QuotaDisplayTests: XCTestCase {
         XCTAssertEqual(QuotaDisplay.resetText(for: reset("5h", in: nil), now: now), "Reset time unknown")
     }
 
-    func testMenuBarTitleFollowsSelectionAndMode() {
+    func testMenuBarBucketFollowsSelectionAndMode() {
         let buckets = [
             bucket("gemini-5h", remaining: 0.6, resetIn: 4 * 3600),
             bucket("official-claude-cli-5h", remaining: 0.2, resetIn: 1 * 3600),
             bucket("official-codex-unavailable", remaining: 0, reason: "Not signed in"),
         ]
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "auto", paceMode: false), "20%")
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "", paceMode: false), "20%")
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "gemini-5h", paceMode: false), "60%")
-        XCTAssertNil(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "none", paceMode: false))
-        XCTAssertNil(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "official-codex-unavailable", paceMode: false))
-        XCTAssertNil(QuotaDisplay.menuBarTitle(buckets: [], selection: "auto", paceMode: false))
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "auto", paceMode: false)?.modelId, "official-claude-cli-5h")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "", paceMode: false)?.modelId, "official-claude-cli-5h")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "gemini-5h", paceMode: false)?.modelId, "gemini-5h")
+        XCTAssertNil(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "none", paceMode: false))
+        XCTAssertNil(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "official-codex-unavailable", paceMode: false))
+        XCTAssertNil(QuotaDisplay.menuBarBucket(buckets: [], selection: "auto", paceMode: false))
         // Gemini: 40% used with 20% of the window elapsed burns fastest (200%)
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "auto", paceMode: true), "200%")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "auto", paceMode: true)?.modelId, "gemini-5h")
     }
 
-    func testMenuBarTitleLatestFollowsTheLastUsedProvider() {
+    func testMenuBarBucketLatestFollowsTheLastUsedProvider() {
         let buckets = [
             bucket("gemini-5h", remaining: 0.1, resetIn: 4 * 3600),
             bucket("official-claude-cli-5h", remaining: 0.3, resetIn: 4 * 3600),
             bucket("official-claude-weekly", remaining: 0.5, resetIn: 2.5 * 3600),
             bucket("official-codex-unavailable", remaining: 0, reason: "Not signed in"),
         ]
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .claude), "30%")
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .gemini), "10%")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .claude)?.modelId, "official-claude-cli-5h")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .gemini)?.modelId, "gemini-5h")
         // Claude 5h: 70% used with 20% elapsed (350%) beats Claude weekly at 100%
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: true, lastUsedProvider: .claude), "350%")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: true, lastUsedProvider: .claude)?.modelId, "official-claude-cli-5h")
         // Nothing used yet, or the last used provider has no live window: same pick as Auto
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: nil), "10%")
-        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .codex), "10%")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: nil)?.modelId, "gemini-5h")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .codex)?.modelId, "gemini-5h")
     }
 }

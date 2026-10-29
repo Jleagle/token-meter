@@ -33,24 +33,22 @@ enum QuotaDisplay {
         return "\(seconds)s"
     }
 
-    /// The number for the menu bar. Nil shows the icon alone. "auto" follows the window most at
-    /// risk: least left, or burning fastest in burn-rate mode. "latest" applies the same rule to
-    /// the provider that last consumed quota, or to every window until one has.
-    static func menuBarTitle(buckets: [QuotaBucket], selection: String, paceMode: Bool, lastUsedProvider: QuotaProvider? = nil) -> String? {
+    /// The window the menu bar shows. Nil shows the app icon alone. "auto" follows the window
+    /// most at risk: least left, or burning fastest in burn-rate mode. "latest" applies the same
+    /// rule to the provider that last consumed quota, or to every window until one has.
+    static func menuBarBucket(buckets: [QuotaBucket], selection: String, paceMode: Bool, lastUsedProvider: QuotaProvider? = nil) -> QuotaBucket? {
         let target = selection.isEmpty ? "auto" : selection
         guard target != "none" else { return nil }
         let live = buckets.filter { $0.unavailableReason == nil }
-        let chosen: QuotaBucket?
         switch target {
         case "auto":
-            chosen = mostAtRisk(live, paceMode: paceMode)
+            return mostAtRisk(live, paceMode: paceMode)
         case "latest":
             let used = live.filter { QuotaProvider.of($0) == lastUsedProvider }
-            chosen = mostAtRisk(used.isEmpty ? live : used, paceMode: paceMode)
+            return mostAtRisk(used.isEmpty ? live : used, paceMode: paceMode)
         default:
-            chosen = live.first(where: { $0.modelId == target })
+            return live.first(where: { $0.modelId == target })
         }
-        return chosen.map { percentText(for: $0, paceMode: paceMode) }
     }
 
     private static func mostAtRisk(_ buckets: [QuotaBucket], paceMode: Bool) -> QuotaBucket? {

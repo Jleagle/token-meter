@@ -1,19 +1,44 @@
 import AppKit
 
-/// The provider marks drawn in the menu rows, as template images so they take the row's colour.
-/// The paths are the Claude and Google Gemini icons from Simple Icons (CC0); the marks themselves
-/// belong to Anthropic and Google.
+/// The provider marks drawn in the menu rows and the menu bar, as template images so they take
+/// the colour of wherever they sit. The paths are the Claude and Google Gemini icons from Simple
+/// Icons (CC0); the marks themselves belong to Anthropic and Google.
 @MainActor
 enum ProviderLogo {
-    private static var cache: [QuotaProvider: NSImage] = [:]
+    static let menuBarSize = NSSize(width: 16, height: 16)
 
+    private static var rowCache: [QuotaProvider: NSImage] = [:]
+    private static var menuBarCache: [QuotaProvider: NSImage] = [:]
+
+    /// The provider's mark, nil for a provider that has none.
     static func image(for provider: QuotaProvider) -> NSImage? {
-        if let cached = cache[provider] { return cached }
+        if let cached = rowCache[provider] { return cached }
+        let image = load(provider)
+        rowCache[provider] = image
+        return image
+    }
+
+    /// The mark at menu bar size, or the provider's symbol when it has no mark.
+    static func menuBarImage(for provider: QuotaProvider) -> NSImage? {
+        if let cached = menuBarCache[provider] { return cached }
+        let image: NSImage?
+        if let mark = load(provider) {
+            mark.size = menuBarSize
+            image = mark
+        } else {
+            image = NSImage(systemSymbolName: provider.symbolName, accessibilityDescription: provider.name)
+            image?.isTemplate = true
+        }
+        menuBarCache[provider] = image
+        return image
+    }
+
+    private static func load(_ provider: QuotaProvider) -> NSImage? {
         guard let path = paths[provider],
               let data = svg(path: path).data(using: .utf8),
               let image = NSImage(data: data) else { return nil }
         image.isTemplate = true
-        cache[provider] = image
+        image.accessibilityDescription = provider.name
         return image
     }
 

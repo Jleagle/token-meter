@@ -7,17 +7,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let menu = NSMenu()
     private let menuBuilder = StatusMenuBuilder(settings: SettingsManager.shared)
     private var cancellables = Set<AnyCancellable>()
+    private var shownProvider: QuotaProvider?
+
+    private let appIcon: NSImage? = {
+        let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter")
+        image?.isTemplate = true
+        return image
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         menu.delegate = self
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.menu = menu
-        if let button = statusItem.button,
-           let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
-            image.isTemplate = true
-            button.image = image
-        }
+        statusItem.button?.image = appIcon
 
         Publishers.CombineLatest4(QuotaService.shared.$buckets, SettingsManager.shared.$toolbarDisplayModelId, SettingsManager.shared.$usePaceMode, SettingsManager.shared.$lastUsedProvider)
             .receive(on: DispatchQueue.main)
@@ -45,26 +48,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateMenuBarDisplay(buckets: [QuotaBucket], displayModelId: String) {
         guard let button = statusItem.button else { return }
         let settings = SettingsManager.shared
-        guard let title = QuotaDisplay.menuBarTitle(buckets: buckets, selection: displayModelId, paceMode: settings.usePaceMode, lastUsedProvider: settings.lastUsedProvider) else {
+        guard let bucket = QuotaDisplay.menuBarBucket(buckets: buckets, selection: displayModelId, paceMode: settings.usePaceMode, lastUsedProvider: settings.lastUsedProvider) else {
             showIconOnly(button)
             return
         }
-        guard button.title != " \(title)" || button.imagePosition != .imageLeft else { return }
-        Diagnostics.log("menu bar: \(title)")
-        button.title = " \(title)"
-        if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
-            image.isTemplate = true
-            button.image = image
-        }
+        let title = " " + QuotaDisplay.percentText(for: bucket, paceMode: settings.usePaceMode)
+        let provider = QuotaProvider.of(bucket)
+        guard button.title != title || shownProvider != provider else { return }
+        Diagnostics.log("menu bar: \(provider.name)\(title)")
+        button.title = title
+        button.image = ProviderLogo.menuBarImage(for: provider)
         button.imagePosition = .imageLeft
+        shownProvider = provider
     }
 
     private func showIconOnly(_ button: NSStatusBarButton) {
         button.title = ""
-        if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
-            image.isTemplate = true
-            button.image = image
-        }
+        button.image = appIcon
         button.imagePosition = .imageOnly
+        shownProvider = nil
     }
 }
