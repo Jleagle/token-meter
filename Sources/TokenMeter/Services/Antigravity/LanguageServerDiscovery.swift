@@ -16,13 +16,14 @@ enum LanguageServerDiscovery {
         let portFlag: String?
     }
 
+    // The agy CLI embeds its language server in-process and generates its CSRF token there, so
+    // only the app's language server, which carries the token in its arguments, is reachable
     private static let searches = [
         Search(processName: "language_server", markers: ["antigravity", "antigravity-ide"], csrfFlag: "--csrf_token", portFlag: "--extension_server_port"),
-        Search(processName: "agy", markers: [], csrfFlag: nil, portFlag: nil),
     ]
 
-    /// Locates the Antigravity app's or the `agy` CLI's language server by running `ps` and
-    /// `lsof`. Blocking subprocess work, so callers run it off the main actor.
+    /// Locates the Antigravity app's language server by running `ps` and `lsof`. Blocking
+    /// subprocess work, so callers run it off the main actor.
     static func discover() -> [LanguageServerLocation] {
         guard let ps = ProcessRunner.run("/bin/ps", ["-ax", "-o", "pid=,command="]), ps.status == 0 else { return [] }
         var locations: [LanguageServerLocation] = []

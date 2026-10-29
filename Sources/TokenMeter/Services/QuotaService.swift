@@ -20,8 +20,15 @@ class QuotaService: ObservableObject {
         discover: { await Task.detached { LanguageServerDiscovery.discover() }.value },
         keychainToken: {
             await Task.detached {
-                Keychain().readGenericPassword(service: "gemini", account: "antigravity")
-                    .flatMap(AntigravityKeychainToken.parse(raw:))
+                guard let raw = Keychain().readGenericPassword(service: "gemini", account: "antigravity") else {
+                    Diagnostics.log("antigravity: keychain item not readable")
+                    return nil
+                }
+                let token = AntigravityKeychainToken.parse(raw: raw)
+                if token == nil {
+                    Diagnostics.log("antigravity: keychain item read (\(raw.count) chars) but not parseable")
+                }
+                return token
             }.value
         },
         loopbackTransport: LoopbackTransport(),

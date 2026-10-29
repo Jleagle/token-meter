@@ -26,6 +26,16 @@ final class AntigravityUsageProvider {
     static let googleClientID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
     static let googleClientSecret = "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"
     private static let expiryMargin: TimeInterval = 60
+    // The Antigravity client's own User-Agent shape. Google omits the Gemini pool from the quota
+    // summary for any other caller.
+    static let clientUserAgent: String = {
+        #if arch(arm64)
+        let arch = "arm64"
+        #else
+        let arch = "amd64"
+        #endif
+        return "antigravity/2.24.0 (aidev_client; os_type=darwin; arch=\(arch))"
+    }()
 
     private let discover: () async -> [LanguageServerLocation]
     private let keychainToken: () async -> AntigravityKeychainToken?
@@ -62,12 +72,20 @@ final class AntigravityUsageProvider {
             return buckets
         }
         guard let keychain = await keychainToken() else {
+            Diagnostics.log("antigravity: no language server running and no keychain login; nothing to show")
             cachedToken = nil
             lastGood = []
             return []
         }
+        let expiry = keychain.expiry.map { "\(Int($0.timeIntervalSince(now()) / 60))m" } ?? "unknown"
+        Diagnostics.log("antigravity: keychain login found (access token: \(keychain.accessToken != nil), refresh token: \(keychain.refreshToken != nil), expires in: \(expiry))")
         switch await probeCloudCode(keychain) {
         case .success(let buckets):
+            Diagnostics.log("antigravity: cloud code cards: \(buckets.map(\.modelId))")
+            guard !buckets.isEmpty else {
+                lastGood = []
+                return [placeholder("No Gemini quota reported")]
+            }
             lastGood = buckets
             return buckets
         case .signInExpired:
@@ -82,7 +100,9 @@ final class AntigravityUsageProvider {
     // MARK: - Language server
 
     private func probeLanguageServer() async -> [QuotaBucket]? {
-        for server in await discover() {
+        let servers = await discover()
+        Diagnostics.log("antigravity: language servers found: \(servers.map { "ports \($0.ports) extension \($0.extensionPort.map(String.init) ?? "none")" })")
+        for server in servers {
             var endpoints: [(scheme: String, port: Int)] = []
             for port in server.ports {
                 endpoints.append(("https", port))
@@ -103,8 +123,15 @@ final class AntigravityUsageProvider {
                     request.setValue(server.csrf, forHTTPHeaderField: "x-codeium-csrf-token")
                 }
                 request.httpBody = Data("{\"forceRefresh\": true}".utf8)
-                guard let (data, http) = try? await loopbackTransport.send(request),
-                      (200...299).contains(http.statusCode),
+                guard let (data, http) = try? await loopbackTransport.send(request) else {
+                    Diagnostics.log("antigravity: language server \(endpoint.scheme):\(endpoint.port) unreachable")
+                    continue
+                }
+                let detail = (200...299).contains(http.statusCode)
+                    ? AntigravitySummaryParser.describe([data])
+                    : String(decoding: data.prefix(200), as: UTF8.self)
+                Diagnostics.log("antigravity: language server \(endpoint.scheme):\(endpoint.port) HTTP \(http.statusCode) (csrf header: \(!server.csrf.isEmpty)): \(detail)")
+                guard (200...299).contains(http.statusCode),
                       let buckets = AntigravitySummaryParser.buckets(from: [data]),
                       !buckets.isEmpty
                 else { continue }
@@ -180,9 +207,13 @@ final class AntigravityUsageProvider {
             request.setValue("application/json", forHTTPHeaderField: "Accept")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            request.setValue("antigravity", forHTTPHeaderField: "User-Agent")
+            request.setValue(Self.clientUserAgent, forHTTPHeaderField: "User-Agent")
             request.httpBody = Data("{}".utf8)
-            guard let (data, http) = try? await transport.send(request) else { continue }
+            guard let (data, http) = try? await transport.send(request) else {
+                Diagnostics.log("antigravity: \(host) unreachable")
+                continue
+            }
+            Diagnostics.log("antigravity: \(host) HTTP \(http.statusCode)")
             if http.statusCode == 401 || http.statusCode == 403 {
                 authFailed = true
                 break
@@ -191,6 +222,7 @@ final class AntigravityUsageProvider {
             bodies.append(data)
             if index == 0, AntigravitySummaryParser.isComplete(data) { break }
         }
+        Diagnostics.log("antigravity: summary: \(AntigravitySummaryParser.describe(bodies))")
         if let buckets = AntigravitySummaryParser.buckets(from: bodies) {
             return .ok(buckets)
         }
@@ -218,7 +250,11 @@ final class AntigravityUsageProvider {
         request.timeoutInterval = 15
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data(form.utf8)
-        guard let (data, http) = try? await transport.send(request) else { return .unavailable }
+        guard let (data, http) = try? await transport.send(request) else {
+            Diagnostics.log("antigravity: google token refresh unreachable")
+            return .unavailable
+        }
+        Diagnostics.log("antigravity: google token refresh HTTP \(http.statusCode)")
         switch http.statusCode {
         case 200...299:
             guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],

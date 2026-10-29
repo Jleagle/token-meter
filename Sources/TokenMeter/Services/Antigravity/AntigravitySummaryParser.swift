@@ -54,6 +54,18 @@ enum AntigravitySummaryParser {
         return result
     }
 
+    /// Group names with their bucket IDs, windows and fractions, for the diagnostics log.
+    static func describe(_ bodies: [Data]) -> String {
+        let groupSets = bodies.compactMap(groups(in:))
+        guard !groupSets.isEmpty else { return "no quota summary in \(bodies.count) body(ies)" }
+        return groupSets.flatMap { $0 }.map { group in
+            let buckets = (group.buckets ?? []).map { bucket in
+                "\(bucket.bucketId ?? "?")/\(bucket.window ?? "?")/\(bucket.remainingFraction.map { String($0) } ?? "nil")\(bucket.disabled == true ? "/disabled" : "")"
+            }
+            return "\(group.displayName ?? "?")[\(buckets.joined(separator: ", "))]"
+        }.joined(separator: "; ")
+    }
+
     /// Whether one body already carries a usable fraction for both Gemini buckets, so no other
     /// host's answer could change the result.
     static func isComplete(_ data: Data) -> Bool {

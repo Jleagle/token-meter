@@ -74,7 +74,11 @@ final class AntigravityUsageProviderTests: XCTestCase {
         XCTAssertEqual(request.url?.absoluteString, summaryURL)
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer at")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "antigravity")
+        // Google leaves the Gemini pool out of the summary unless the caller presents the
+        // Antigravity client's own User-Agent shape
+        let userAgent = request.value(forHTTPHeaderField: "User-Agent") ?? ""
+        XCTAssertTrue(userAgent.hasPrefix("antigravity/"), userAgent)
+        XCTAssertTrue(userAgent.contains("(aidev_client; os_type=darwin; arch="), userAgent)
         XCTAssertEqual(request.httpBody, Data("{}".utf8))
     }
 
@@ -189,6 +193,19 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let second = await provider.fetch()
         XCTAssertEqual(second.map(\.modelId), first.map(\.modelId))
         XCTAssertEqual(cloud.requests.count, 3)
+    }
+
+    func testPlaceholderWhenSummaryHasNoGeminiPool() async {
+        let onlyThirdParty = """
+        {"groups":[{"displayName":"Claude and GPT models","buckets":[
+          {"bucketId":"3p-5h","window":"5h","remainingFraction":1.0},
+          {"bucketId":"3p-weekly","window":"weekly","remainingFraction":1.0}]}]}
+        """
+        let cloud = StubTransport(responses: [.init(status: 200, body: onlyThirdParty), .init(status: 200, body: onlyThirdParty)])
+        let provider = provider(keychain: token(), cloud: cloud)
+        let buckets = await provider.fetch()
+        XCTAssertEqual(buckets.map(\.unavailableReason), ["No Gemini quota reported"])
+        XCTAssertEqual(buckets.map(\.displayName), ["Gemini"])
     }
 
     func testPlaceholderWhenUnavailableWithoutLastGood() async {
