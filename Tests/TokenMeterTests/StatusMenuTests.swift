@@ -77,8 +77,8 @@ final class StatusMenuBuilderTests: XCTestCase {
     func testMenuBarSubmenuListsLiveWindowsAndChecksTheCurrentOne() throws {
         settings.toolbarDisplayModelId = "official-claude-weekly"
         let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[10].submenu)
-        XCTAssertEqual(titles(show), ["Auto", "None", "---", "Gemini - 5 Hour", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly", "Codex - 5 Hour"])
-        XCTAssertEqual(show.items.map(\.state), [.off, .off, .off, .off, .off, .on, .off, .off])
+        XCTAssertEqual(titles(show), ["Auto", "Latest", "None", "---", "Gemini - 5 Hour", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly", "Codex - 5 Hour"])
+        XCTAssertEqual(show.items.map(\.state), [.off, .off, .off, .off, .off, .off, .on, .off, .off])
     }
 
     func testMenuBarSubmenuOmitsPlaceholders() throws {
@@ -105,6 +105,10 @@ final class StatusMenuBuilderTests: XCTestCase {
         let none = try XCTUnwrap(show.items.first { $0.title == "None" })
         _ = none.target?.perform(none.action, with: none)
         XCTAssertEqual(settings.toolbarDisplayModelId, "none")
+
+        let latest = try XCTUnwrap(show.items.first { $0.title == "Latest" })
+        _ = latest.target?.perform(latest.action, with: latest)
+        XCTAssertEqual(settings.toolbarDisplayModelId, "latest")
 
         let auto = try XCTUnwrap(show.items.first { $0.title == "Auto" })
         _ = auto.target?.perform(auto.action, with: auto)

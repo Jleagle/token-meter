@@ -89,7 +89,8 @@ final class StatusMenuBuilder: NSObject {
         return menu
     }
 
-    /// Which window's number the status item shows: Auto, one of the live windows, or None for the icon alone.
+    /// Which window's number the status item shows: Auto, Latest, one of the live windows, or None
+    /// for the icon alone.
     private func menuBarMenu(buckets: [QuotaBucket]) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
@@ -104,6 +105,7 @@ final class StatusMenuBuilder: NSObject {
         }
 
         menu.addItem(option("Auto", id: "auto"))
+        menu.addItem(option("Latest", id: "latest"))
         menu.addItem(option("None", id: "none"))
         menu.addItem(.separator())
         for bucket in buckets where bucket.unavailableReason == nil {

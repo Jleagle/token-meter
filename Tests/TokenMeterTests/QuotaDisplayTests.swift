@@ -61,4 +61,20 @@ final class QuotaDisplayTests: XCTestCase {
         // Gemini: 40% used with 20% of the window elapsed burns fastest (200%)
         XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "auto", paceMode: true), "200%")
     }
+
+    func testMenuBarTitleLatestFollowsTheLastUsedProvider() {
+        let buckets = [
+            bucket("gemini-5h", remaining: 0.1, resetIn: 4 * 3600),
+            bucket("official-claude-cli-5h", remaining: 0.3, resetIn: 4 * 3600),
+            bucket("official-claude-weekly", remaining: 0.5, resetIn: 2.5 * 3600),
+            bucket("official-codex-unavailable", remaining: 0, reason: "Not signed in"),
+        ]
+        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .claude), "30%")
+        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .gemini), "10%")
+        // Claude 5h: 70% used with 20% elapsed (350%) beats Claude weekly at 100%
+        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: true, lastUsedProvider: .claude), "350%")
+        // Nothing used yet, or the last used provider has no live window: same pick as Auto
+        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: nil), "10%")
+        XCTAssertEqual(QuotaDisplay.menuBarTitle(buckets: buckets, selection: "latest", paceMode: false, lastUsedProvider: .codex), "10%")
+    }
 }

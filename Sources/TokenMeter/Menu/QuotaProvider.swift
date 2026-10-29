@@ -1,7 +1,7 @@
 import Foundation
 
 /// The service a quota card belongs to, in the order the menu lists them.
-enum QuotaProvider: CaseIterable {
+enum QuotaProvider: String, CaseIterable {
     case gemini
     case claude
     case codex
