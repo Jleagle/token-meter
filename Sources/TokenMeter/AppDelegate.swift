@@ -49,6 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         guard button.title != " \(title)" || button.imagePosition != .imageLeft else { return }
+        Diagnostics.log("menu bar: \(title)")
         button.title = " \(title)"
         if let image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TokenMeter") {
             image.isTemplate = true

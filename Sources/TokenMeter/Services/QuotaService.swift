@@ -86,6 +86,7 @@ class QuotaService: ObservableObject {
         let codexBuckets = await fetchOfficialCodexBuckets()
 
         let combined = geminiBuckets + claudeBuckets + codexBuckets
+        Diagnostics.log("cards: " + combined.map { "\($0.modelId) left \($0.remainingPercentage)% pace \($0.effectivePacePercentage)%\($0.unavailableReason.map { " (\($0))" } ?? "")" }.joined(separator: ", "))
         if combined.isEmpty {
             errorMessage = "No usage sources found. Sign in to Antigravity, Claude Code or the Codex CLI."
         } else {
