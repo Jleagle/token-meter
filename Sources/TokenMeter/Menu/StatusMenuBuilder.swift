@@ -98,7 +98,7 @@ final class StatusMenuBuilder: NSObject {
         return menu
     }
 
-    /// Which window's number the status item shows: Auto, Latest, one of the live windows, or None
+    /// Which window's number the status item shows: Lowest, Latest, one of the live windows, or None
     /// for the icon alone.
     private func menuBarMenu(buckets: [QuotaBucket]) -> NSMenu {
         let menu = NSMenu()
@@ -113,7 +113,7 @@ final class StatusMenuBuilder: NSObject {
             return item
         }
 
-        menu.addItem(option("Auto", id: "auto"))
+        menu.addItem(option("Lowest", id: "auto"))
         menu.addItem(option("Latest", id: "latest"))
         menu.addItem(option("None", id: "none"))
         menu.addItem(.separator())

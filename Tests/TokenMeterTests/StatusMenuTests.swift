@@ -78,7 +78,7 @@ final class StatusMenuBuilderTests: XCTestCase {
     func testMenuBarSubmenuListsLiveWindowsAndChecksTheCurrentOne() throws {
         settings.toolbarDisplayModelId = "official-claude-weekly"
         let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items[10].submenu)
-        XCTAssertEqual(titles(show), ["Auto", "Latest", "None", "---", "Gemini - 5 Hour", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly", "Codex - 5 Hour"])
+        XCTAssertEqual(titles(show), ["Lowest", "Latest", "None", "---", "Gemini - 5 Hour", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly", "Codex - 5 Hour"])
         XCTAssertEqual(show.items.map(\.state), [.off, .off, .off, .off, .off, .off, .on, .off, .off])
     }
 
@@ -111,7 +111,7 @@ final class StatusMenuBuilderTests: XCTestCase {
         _ = latest.target?.perform(latest.action, with: latest)
         XCTAssertEqual(settings.toolbarDisplayModelId, "latest")
 
-        let auto = try XCTUnwrap(show.items.first { $0.title == "Auto" })
+        let auto = try XCTUnwrap(show.items.first { $0.title == "Lowest" })
         _ = auto.target?.perform(auto.action, with: auto)
         XCTAssertEqual(settings.toolbarDisplayModelId, "auto")
     }
@@ -143,7 +143,7 @@ final class StatusMenuBuilderTests: XCTestCase {
     func testHiddenProviderWindowsAreLeftOutOfTheMenuBarSubmenu() throws {
         settings.enabledProviders = [.claude]
         let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items.first { $0.title == "Menu Bar" }?.submenu)
-        XCTAssertEqual(titles(show), ["Auto", "Latest", "None", "---", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly"])
+        XCTAssertEqual(titles(show), ["Lowest", "Latest", "None", "---", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly"])
     }
 
     func testEveryProviderHiddenShowsOneLineInPlaceOfTheRows() {
