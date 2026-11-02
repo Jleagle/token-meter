@@ -21,15 +21,10 @@ A provider's section only appears when its tool is found on the machine. If the 
 ## Installation
 
 ```bash
-# 1. Add repository as a Homebrew tap
-brew tap jleagle/token-meter https://github.com/jleagle/token-meter
-
-# 2. Trust the tap
-brew trust jleagle/token-meter
-
-# 3. Install the application
-brew install --cask token-meter
+brew install --cask Jleagle/token-meter/token-meter
 ```
+
+The cask lives in the [Jleagle/homebrew-token-meter](https://github.com/Jleagle/homebrew-token-meter) tap, which that command adds and trusts for you. Each release updates it automatically.
 
 ## Development
 

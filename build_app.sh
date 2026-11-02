@@ -24,7 +24,8 @@ chmod +x "$MACOS_DIR/TokenMeter"
 
 # 4. Determine Version Number
 if [ -z "$APP_VERSION" ]; then
-  APP_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || grep -E '^[[:space:]]*version "[^"]+"' Casks/token-meter.rb 2>/dev/null | sed -E 's/.*version "([^"]+)".*/\1/' || echo "1.0.0")
+  APP_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+  APP_VERSION=${APP_VERSION:-1.0.0}
 fi
 echo "Using App Version: $APP_VERSION"
 
