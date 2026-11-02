@@ -8,7 +8,7 @@ Only plan/subscription accounts are supported — usage is read from the tools y
 
 | Provider | What is shown | How usage is fetched |
 |---|---|---|
-| Gemini | Antigravity's shared Gemini quota (5-hour and weekly windows), plus the Gemini 4 Argon weekly quota when your plan has one | Asks the Antigravity language server while the app or `agy` is running. When neither is running, it uses the Google login Antigravity keeps in the macOS Keychain to query Google's Cloud Code API, refreshing the login when it has expired. The non-Gemini pool Antigravity also reports is ignored. |
+| Gemini | Antigravity's Gemini quota and its Claude & GPT quota (Claude Opus, Claude Sonnet, GPT-OSS), each with 5-hour and weekly windows, plus the Gemini 4 Argon weekly quota when your plan has one | Asks the Antigravity language server while the app or `agy` is running. When neither is running, it uses the Google login Antigravity keeps in the macOS Keychain to query Google's Cloud Code API, refreshing the login when it has expired. |
 | Claude (Pro / Max / Team / Enterprise) | 5-hour and weekly limits for your plan, plus any model-scoped weekly limit it reports (e.g. Fable) | Uses your Claude Code login (macOS Keychain, or `~/.claude/.credentials.json`) to query Anthropic's OAuth usage endpoint. An expired session is refreshed and the new token written back, so Claude Code keeps working without signing in again. When Anthropic rate-limits the endpoint, the last values stay on screen with a note until the retry time. |
 | Codex / OpenAI (Plus / Pro) | 5-hour limit (lowest of the plan's rate-limit windows) | Uses your Codex CLI login (`~/.codex/auth.json`) to query the ChatGPT usage endpoint. Requires being logged into the Codex CLI. |
 

@@ -3,10 +3,16 @@ import XCTest
 
 @MainActor
 final class AntigravityUsageProviderTests: XCTestCase {
+    private let allIDs = ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly"]
     private let summary = """
-    {"groups":[{"displayName":"Gemini models","buckets":[
-      {"bucketId":"gemini-5h","window":"5h","remainingFraction":0.8,"resetTime":"2026-10-23T22:00:00Z"},
-      {"bucketId":"gemini-weekly","window":"weekly","remainingFraction":0.5,"resetTime":"2026-10-30T00:00:00Z"}]}]}
+    {"groups":[
+      {"displayName":"Gemini Models","buckets":[
+        {"bucketId":"gemini-5h","window":"5h","remainingFraction":0.8,"resetTime":"2026-10-23T22:00:00Z"},
+        {"bucketId":"gemini-weekly","window":"weekly","remainingFraction":0.5,"resetTime":"2026-10-30T00:00:00Z"}]},
+      {"displayName":"Claude and GPT models","buckets":[
+        {"bucketId":"3p-weekly","window":"weekly","remainingFraction":0.4,"resetTime":"2026-10-31T00:00:00Z"},
+        {"bucketId":"3p-5h","window":"5h","remainingFraction":1.0,"resetTime":"2026-10-23T23:00:00Z"}]}
+    ]}
     """
     private let partialSummary = """
     {"groups":[{"displayName":"Gemini models","buckets":[
@@ -39,7 +45,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(servers: [LanguageServerLocation(csrf: "token", ports: [5000], extensionPort: nil)], keychain: token(), loopback: loopback, cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), allIDs)
         XCTAssertTrue(cloud.requests.isEmpty)
 
         let request = loopback.requests[0]
@@ -58,7 +64,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(servers: [LanguageServerLocation(csrf: "", ports: [5000], extensionPort: 5001)], loopback: loopback)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.count, 2)
+        XCTAssertEqual(buckets.count, 4)
         XCTAssertEqual(loopback.requests.map { $0.url!.absoluteString.prefix(22) }, ["https://127.0.0.1:5000", "http://127.0.0.1:5000/", "http://127.0.0.1:5001/"])
         XCTAssertNil(loopback.requests[2].value(forHTTPHeaderField: "x-codeium-csrf-token"))
     }
@@ -68,7 +74,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(keychain: token(), cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), allIDs)
         XCTAssertEqual(cloud.requests.count, 1)
         let request = cloud.requests[0]
         XCTAssertEqual(request.url?.absoluteString, summaryURL)
@@ -90,7 +96,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(keychain: token(), cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), allIDs)
         XCTAssertEqual(cloud.requests.map { $0.url!.absoluteString }, [summaryURL, dailySummaryURL])
     }
 
@@ -103,7 +109,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(keychain: token(expired: true), cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.count, 2)
+        XCTAssertEqual(buckets.count, 4)
         let refresh = cloud.requests[0]
         XCTAssertEqual(refresh.url?.absoluteString, "https://oauth2.googleapis.com/token")
         let form = String(decoding: try XCTUnwrap(refresh.httpBody), as: UTF8.self)
@@ -126,7 +132,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(keychain: token(), cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.count, 2)
+        XCTAssertEqual(buckets.count, 4)
         XCTAssertEqual(cloud.requests[1].url?.absoluteString, "https://oauth2.googleapis.com/token")
         XCTAssertEqual(cloud.requests[2].value(forHTTPHeaderField: "Authorization"), "Bearer fresh")
     }
@@ -152,7 +158,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(servers: [LanguageServerLocation(csrf: "token", ports: [5000], extensionPort: nil)], keychain: token(), loopback: loopback, cloud: cloud)
 
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), allIDs)
         XCTAssertEqual(loopback.requests.count, 2)
         XCTAssertEqual(cloud.requests.count, 1)
     }
@@ -166,7 +172,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         let provider = provider(keychain: token(), cloud: cloud)
 
         let first = await provider.fetch()
-        XCTAssertEqual(first.count, 2)
+        XCTAssertEqual(first.count, 4)
         let second = await provider.fetch()
         XCTAssertEqual(second.map(\.modelId), first.map(\.modelId))
         XCTAssertNil(second[0].unavailableReason)
@@ -195,16 +201,29 @@ final class AntigravityUsageProviderTests: XCTestCase {
         XCTAssertEqual(cloud.requests.count, 3)
     }
 
-    func testPlaceholderWhenSummaryHasNoGeminiPool() async {
+    func testShowsClaudeAndGPTPoolWhenGeminiPoolIsMissing() async {
         let onlyThirdParty = """
         {"groups":[{"displayName":"Claude and GPT models","buckets":[
           {"bucketId":"3p-5h","window":"5h","remainingFraction":1.0},
-          {"bucketId":"3p-weekly","window":"weekly","remainingFraction":1.0}]}]}
+          {"bucketId":"3p-weekly","window":"weekly","remainingFraction":0.3}]}]}
         """
         let cloud = StubTransport(responses: [.init(status: 200, body: onlyThirdParty), .init(status: 200, body: onlyThirdParty)])
         let provider = provider(keychain: token(), cloud: cloud)
         let buckets = await provider.fetch()
-        XCTAssertEqual(buckets.map(\.unavailableReason), ["No Gemini quota reported"])
+        XCTAssertEqual(buckets.map(\.modelId), ["3p-5h", "3p-weekly"])
+        XCTAssertEqual(buckets.map(\.unavailableReason), [nil, nil])
+        XCTAssertEqual(cloud.requests.count, 2)
+    }
+
+    func testPlaceholderWhenSummaryHasNoKnownPool() async {
+        let unknown = """
+        {"groups":[{"displayName":"Other models","buckets":[
+          {"bucketId":"other-5h","window":"5h","remainingFraction":1.0}]}]}
+        """
+        let cloud = StubTransport(responses: [.init(status: 200, body: unknown), .init(status: 200, body: unknown)])
+        let provider = provider(keychain: token(), cloud: cloud)
+        let buckets = await provider.fetch()
+        XCTAssertEqual(buckets.map(\.unavailableReason), ["No quota reported"])
         XCTAssertEqual(buckets.map(\.displayName), ["Gemini"])
     }
 

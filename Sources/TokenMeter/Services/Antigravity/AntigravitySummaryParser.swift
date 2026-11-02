@@ -1,24 +1,27 @@
 import Foundation
 
-/// Turns `RetrieveUserQuotaSummary` responses into Gemini quota cards. The shared Gemini pool is
-/// matched by exact bucket ID so a future bucket never silently joins it; the separate
-/// "Gemini 4 Argon" group contributes its single weekly bucket when the plan reports one.
-/// Antigravity's non-Gemini pool (`3p-5h`, `3p-weekly`) is ignored.
+/// Turns `RetrieveUserQuotaSummary` responses into the Gemini section's quota cards: Antigravity's
+/// Gemini pool, the Claude and GPT pool it reports beside it (`3p-5h`, `3p-weekly`), and the
+/// separate "Gemini 4 Argon" group's single weekly bucket when the plan reports one. Pooled
+/// buckets are matched by exact bucket ID so a future bucket never silently joins them.
 enum AntigravitySummaryParser {
-    private struct GeminiBucket {
+    private struct PooledBucket {
         let id: String
         let name: String
         let window: String
     }
 
-    private static let geminiBuckets = [
-        GeminiBucket(id: "gemini-5h", name: "Gemini - 5 Hour", window: "5h"),
-        GeminiBucket(id: "gemini-weekly", name: "Gemini - Weekly", window: "weekly"),
+    /// The pooled buckets in the order their cards are listed.
+    private static let pooledBuckets = [
+        PooledBucket(id: "gemini-5h", name: "Gemini - 5 Hour", window: "5h"),
+        PooledBucket(id: "gemini-weekly", name: "Gemini - Weekly", window: "weekly"),
+        PooledBucket(id: "3p-5h", name: "Gemini - Claude & GPT 5 Hour", window: "5h"),
+        PooledBucket(id: "3p-weekly", name: "Gemini - Claude & GPT Weekly", window: "weekly"),
     ]
     private static let argonGroupName = "Gemini 4 Argon"
 
     /// Merges one body per host, first usable bucket per ID wins. Nil when no body is a quota
-    /// summary at all; an empty array when the summaries carry no usable Gemini buckets.
+    /// summary at all; an empty array when the summaries carry no usable pooled or Argon bucket.
     static func buckets(from bodies: [Data]) -> [QuotaBucket]? {
         let groupSets = bodies.compactMap(groups(in:))
         guard !groupSets.isEmpty else { return nil }
@@ -33,7 +36,7 @@ enum AntigravitySummaryParser {
                 }
                 for bucket in group.buckets ?? [] {
                     guard let id = bucket.bucketId,
-                          geminiBuckets.contains(where: { $0.id == id }),
+                          pooledBuckets.contains(where: { $0.id == id }),
                           pooled[id] == nil,
                           let fraction = bucket.remainingFraction, fraction.isFinite
                     else { continue }
@@ -43,7 +46,7 @@ enum AntigravitySummaryParser {
         }
 
         var result: [QuotaBucket] = []
-        for spec in geminiBuckets {
+        for spec in pooledBuckets {
             if let bucket = pooled[spec.id] {
                 result.append(quotaBucket(bucket, name: spec.name, window: spec.window))
             }
@@ -66,14 +69,14 @@ enum AntigravitySummaryParser {
         }.joined(separator: "; ")
     }
 
-    /// Whether one body already carries a usable fraction for both Gemini buckets, so no other
+    /// Whether one body already carries a usable fraction for every pooled bucket, so no other
     /// host's answer could change the result.
     static func isComplete(_ data: Data) -> Bool {
         guard let groups = groups(in: data) else { return false }
         let usable = Set(groups.filter { $0.displayName != argonGroupName }
             .flatMap { $0.buckets ?? [] }
             .compactMap { $0.remainingFraction?.isFinite == true ? $0.bucketId : nil })
-        return geminiBuckets.allSatisfy { usable.contains($0.id) }
+        return pooledBuckets.allSatisfy { usable.contains($0.id) }
     }
 
     private static func groups(in data: Data) -> [QuotaSummaryGroup]? {
@@ -85,7 +88,7 @@ enum AntigravitySummaryParser {
         let weekly = (group.buckets ?? []).filter { $0.window == "weekly" }
         guard weekly.count == 1, let bucket = weekly.first,
               let id = bucket.bucketId, !id.isEmpty,
-              !geminiBuckets.contains(where: { $0.id == id }),
+              !pooledBuckets.contains(where: { $0.id == id }),
               bucket.disabled != true,
               let fraction = bucket.remainingFraction, fraction.isFinite
         else { return nil }

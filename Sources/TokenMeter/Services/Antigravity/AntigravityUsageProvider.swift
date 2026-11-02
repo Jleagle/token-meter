@@ -6,7 +6,7 @@ struct LanguageServerLocation: Equatable {
     let extensionPort: Int?
 }
 
-/// Gemini quota from Antigravity. The running language server is asked first; with the app
+/// Antigravity's quota pools for the Gemini section. The running language server is asked first; with the app
 /// closed, Google's Cloud Code API is asked with the OAuth login Antigravity keeps in the keychain,
 /// refreshed through Google OAuth when it has expired. A refreshed token lives in memory only;
 /// Antigravity's keychain item is never written.
@@ -84,7 +84,7 @@ final class AntigravityUsageProvider {
             Diagnostics.log("antigravity: cloud code cards: \(buckets.map(\.modelId))")
             guard !buckets.isEmpty else {
                 lastGood = []
-                return [placeholder("No Gemini quota reported")]
+                return [placeholder("No quota reported")]
             }
             lastGood = buckets
             return buckets
@@ -194,8 +194,8 @@ final class AntigravityUsageProvider {
         case unavailable
     }
 
-    /// Asks production first and stops there when its answer carries both Gemini buckets; the daily
-    /// host can omit a whole pool, so an incomplete answer is merged with the daily one.
+    /// Asks production first and stops there when its answer carries every pooled bucket; a host
+    /// can omit a whole pool, so an incomplete answer is merged with the daily one.
     private func fetchSummary(token: String) async -> SummaryOutcome {
         var bodies: [Data] = []
         var authFailed = false

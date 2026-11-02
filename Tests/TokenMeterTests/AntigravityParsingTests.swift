@@ -81,27 +81,43 @@ final class AntigravitySummaryParserTests: XCTestCase {
       {"displayName":"Gemini models","buckets":[
         {"bucketId":"gemini-5h","displayName":"Gemini 5h","window":"5h","remainingFraction":0.8,"resetTime":"2026-10-23T22:00:00Z"},
         {"bucketId":"gemini-weekly","displayName":"Gemini weekly","window":"weekly","remainingFraction":0.5,"resetTime":"2026-10-30T00:00:00Z"}]},
-      {"displayName":"Claude models","buckets":[
-        {"bucketId":"3p-5h","window":"5h","remainingFraction":0.1},
-        {"bucketId":"3p-weekly","window":"weekly","remainingFraction":0.2}]},
+      {"displayName":"Claude and GPT models","buckets":[
+        {"bucketId":"3p-weekly","window":"weekly","remainingFraction":0.2,"resetTime":"2026-10-31T00:00:00Z"},
+        {"bucketId":"3p-5h","window":"5h","remainingFraction":0.1}]},
       {"displayName":"Gemini 4 Argon","buckets":[
         {"bucketId":"argon-weekly","window":"weekly","remainingFraction":0.9,"resetTime":"2026-10-30T00:00:00Z"}]}
     ]}
     """
 
-    func testKeepsGeminiPoolAndArgonWeeklyOnly() throws {
+    func testListsBothPoolsInWindowOrderThenArgonWeekly() throws {
         let buckets = try XCTUnwrap(AntigravitySummaryParser.buckets(from: [Data(bare.utf8)]))
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly", "argon-weekly"])
-        XCTAssertEqual(buckets.map(\.displayName), ["Gemini - 5 Hour", "Gemini - Weekly", "Gemini - Argon Weekly"])
-        XCTAssertEqual(buckets.map(\.tokenType), ["5h", "weekly", "weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly", "argon-weekly"])
+        XCTAssertEqual(buckets.map(\.displayName), [
+            "Gemini - 5 Hour", "Gemini - Weekly",
+            "Gemini - Claude & GPT 5 Hour", "Gemini - Claude & GPT Weekly",
+            "Gemini - Argon Weekly",
+        ])
+        XCTAssertEqual(buckets.map(\.tokenType), ["5h", "weekly", "5h", "weekly", "weekly"])
         XCTAssertEqual(buckets[0].remainingFraction, 0.8)
         XCTAssertEqual(buckets[0].resetTime, "2026-10-23T22:00:00Z")
+        XCTAssertEqual(buckets[2].remainingFraction, 0.1)
+        XCTAssertEqual(buckets[3].resetTime, "2026-10-31T00:00:00Z")
+    }
+
+    func testCompleteOnlyWhenEveryPooledBucketIsUsable() {
+        XCTAssertTrue(AntigravitySummaryParser.isComplete(Data(bare.utf8)))
+        let geminiOnly = """
+        {"groups":[{"displayName":"Gemini models","buckets":[
+          {"bucketId":"gemini-5h","window":"5h","remainingFraction":0.8},
+          {"bucketId":"gemini-weekly","window":"weekly","remainingFraction":0.5}]}]}
+        """
+        XCTAssertFalse(AntigravitySummaryParser.isComplete(Data(geminiOnly.utf8)))
     }
 
     func testAcceptsLanguageServerEnvelope() throws {
         let wrapped = "{\"response\": \(bare)}"
         let buckets = try XCTUnwrap(AntigravitySummaryParser.buckets(from: [Data(wrapped.utf8)]))
-        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly", "argon-weekly"])
+        XCTAssertEqual(buckets.map(\.modelId), ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly", "argon-weekly"])
     }
 
     func testReturnsNilWhenBodyIsNotASummary() {
