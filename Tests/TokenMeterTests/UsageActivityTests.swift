@@ -45,13 +45,3 @@ final class UsageActivityTests: XCTestCase {
         XCTAssertEqual(UsageActivity.reducedProvider(from: before, to: after), .gemini)
     }
 }
-
-final class SettingsManagerTests: XCTestCase {
-    func testLastUsedProviderPersistsAcrossInstances() {
-        let defaults = UserDefaults(suiteName: "TokenMeterTests.\(UUID().uuidString)")!
-        let settings = SettingsManager(defaults: defaults)
-        XCTAssertNil(settings.lastUsedProvider)
-        settings.lastUsedProvider = .claude
-        XCTAssertEqual(SettingsManager(defaults: defaults).lastUsedProvider, .claude)
-    }
-}

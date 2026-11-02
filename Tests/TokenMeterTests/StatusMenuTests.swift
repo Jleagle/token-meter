@@ -40,14 +40,15 @@ final class StatusMenuBuilderTests: XCTestCase {
         menu.items.map { $0.isSeparatorItem ? "---" : $0.title }
     }
 
-    func testGroupsRowsUnderProviderHeadersThenSettingsMenuBarAndQuit() {
+    func testGroupsRowsUnderProviderHeadersThenSettingsMenuBarProvidersAndQuit() {
         let menu = builder.makeMenu(buckets: sample, errorMessage: nil)
-        XCTAssertEqual(titles(menu), ["Gemini", "5 Hour", "Claude", "5 Hour", "Weekly", "Fable Weekly", "Codex", "5 Hour", "---", "Settings", "Menu Bar", "Quit TokenMeter"])
+        XCTAssertEqual(titles(menu), ["Gemini", "5 Hour", "Claude", "5 Hour", "Weekly", "Fable Weekly", "Codex", "5 Hour", "---", "Settings", "Menu Bar", "Providers", "Quit TokenMeter"])
         XCTAssertFalse(menu.items[0].isEnabled)
         XCTAssertNotNil(menu.items[1].view)
         XCTAssertNotNil(menu.items[9].submenu)
         XCTAssertNotNil(menu.items[10].submenu)
-        XCTAssertEqual(menu.items[11].keyEquivalent, "q")
+        XCTAssertNotNil(menu.items[11].submenu)
+        XCTAssertEqual(menu.items[12].keyEquivalent, "q")
     }
 
     func testPlaceholderRowIsDisabledAndTitledWithItsReason() {
@@ -59,7 +60,7 @@ final class StatusMenuBuilderTests: XCTestCase {
 
     func testEmptyStateShowsLoadingOrErrorLine() {
         let loading = builder.makeMenu(buckets: [], errorMessage: nil)
-        XCTAssertEqual(titles(loading), ["Loading usage…", "---", "Settings", "Menu Bar", "Quit TokenMeter"])
+        XCTAssertEqual(titles(loading), ["Loading usage…", "---", "Settings", "Menu Bar", "Providers", "Quit TokenMeter"])
         XCTAssertFalse(loading.items[0].isEnabled)
 
         let failed = builder.makeMenu(buckets: [], errorMessage: "No usage sources found.")
@@ -113,5 +114,42 @@ final class StatusMenuBuilderTests: XCTestCase {
         let auto = try XCTUnwrap(show.items.first { $0.title == "Auto" })
         _ = auto.target?.perform(auto.action, with: auto)
         XCTAssertEqual(settings.toolbarDisplayModelId, "auto")
+    }
+
+    func testProvidersSubmenuSitsBelowMenuBarWithACheckPerProvider() throws {
+        settings.enabledProviders = [.gemini, .codex]
+        let menu = builder.makeMenu(buckets: sample, errorMessage: nil)
+        XCTAssertEqual(titles(menu).suffix(4), ["Settings", "Menu Bar", "Providers", "Quit TokenMeter"])
+        let providers = try XCTUnwrap(menu.items.first { $0.title == "Providers" }?.submenu)
+        XCTAssertEqual(providers.items.map(\.title), ["Gemini", "Claude", "Codex"])
+        XCTAssertEqual(providers.items.map(\.state), [.on, .off, .on])
+    }
+
+    func testTogglingAProviderFlipsItsSetting() throws {
+        let providers = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items.first { $0.title == "Providers" }?.submenu)
+        let claude = try XCTUnwrap(providers.items.first { $0.title == "Claude" })
+        _ = claude.target?.perform(claude.action, with: claude)
+        XCTAssertEqual(settings.enabledProviders, [.gemini, .codex])
+        _ = claude.target?.perform(claude.action, with: claude)
+        XCTAssertEqual(settings.enabledProviders, Set(QuotaProvider.allCases))
+    }
+
+    func testHiddenProviderRowsAreLeftOutOfTheMenu() {
+        settings.enabledProviders = [.gemini, .codex]
+        let menu = builder.makeMenu(buckets: sample, errorMessage: nil)
+        XCTAssertEqual(titles(menu).prefix(5), ["Gemini", "5 Hour", "Codex", "5 Hour", "---"])
+    }
+
+    func testHiddenProviderWindowsAreLeftOutOfTheMenuBarSubmenu() throws {
+        settings.enabledProviders = [.claude]
+        let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items.first { $0.title == "Menu Bar" }?.submenu)
+        XCTAssertEqual(titles(show), ["Auto", "Latest", "None", "---", "Claude - 5 Hour", "Claude - Weekly", "Claude - Fable Weekly"])
+    }
+
+    func testEveryProviderHiddenShowsOneLineInPlaceOfTheRows() {
+        settings.enabledProviders = []
+        let menu = builder.makeMenu(buckets: sample, errorMessage: "No usage sources found.")
+        XCTAssertEqual(titles(menu), ["All providers hidden", "---", "Settings", "Menu Bar", "Providers", "Quit TokenMeter"])
+        XCTAssertFalse(menu.items[0].isEnabled)
     }
 }

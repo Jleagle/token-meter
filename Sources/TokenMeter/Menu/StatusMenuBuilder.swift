@@ -1,7 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// The status item's dropdown: quota rows under provider headers, the Settings and Menu Bar submenus, and Quit.
+/// The status item's dropdown: quota rows under provider headers, the Settings, Menu Bar and
+/// Providers submenus, and Quit.
 @MainActor
 final class StatusMenuBuilder: NSObject {
     static let rowWidth: CGFloat = 280
@@ -23,10 +24,14 @@ final class StatusMenuBuilder: NSObject {
         menu.removeAllItems()
         menu.autoenablesItems = false
 
-        if buckets.isEmpty {
+        let enabled = settings.enabledProviders
+        let shown = buckets.filter { enabled.contains(QuotaProvider.of($0)) }
+        if enabled.isEmpty {
+            menu.addItem(disabledItem("All providers hidden"))
+        } else if shown.isEmpty {
             menu.addItem(disabledItem(errorMessage ?? "Loading usage…"))
         } else {
-            for group in QuotaProvider.grouped(buckets) {
+            for group in QuotaProvider.grouped(shown) {
                 menu.addItem(header(group.provider.name))
                 for bucket in group.buckets {
                     menu.addItem(rowItem(bucket))
@@ -41,8 +46,12 @@ final class StatusMenuBuilder: NSObject {
         menu.addItem(settingsItem)
 
         let menuBarItem = NSMenuItem(title: "Menu Bar", action: nil, keyEquivalent: "")
-        menuBarItem.submenu = menuBarMenu(buckets: buckets)
+        menuBarItem.submenu = menuBarMenu(buckets: shown)
         menu.addItem(menuBarItem)
+
+        let providersItem = NSMenuItem(title: "Providers", action: nil, keyEquivalent: "")
+        providersItem.submenu = providersMenu()
+        menu.addItem(providersItem)
 
         let quit = NSMenuItem(title: "Quit TokenMeter", action: #selector(quit(_:)), keyEquivalent: "q")
         quit.target = self
@@ -114,6 +123,20 @@ final class StatusMenuBuilder: NSObject {
         return menu
     }
 
+    /// A check per provider; an unchecked provider is neither shown nor polled.
+    private func providersMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for provider in QuotaProvider.allCases {
+            let item = NSMenuItem(title: provider.name, action: #selector(toggleProvider(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = provider.rawValue
+            item.state = settings.enabledProviders.contains(provider) ? .on : .off
+            menu.addItem(item)
+        }
+        return menu
+    }
+
     // MARK: - Actions
 
     @objc func toggleBurnRate(_ sender: NSMenuItem) {
@@ -123,6 +146,15 @@ final class StatusMenuBuilder: NSObject {
     @objc func selectMenuBarItem(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         settings.toolbarDisplayModelId = id
+    }
+
+    @objc func toggleProvider(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let provider = QuotaProvider(rawValue: raw) else { return }
+        if settings.enabledProviders.contains(provider) {
+            settings.enabledProviders.remove(provider)
+        } else {
+            settings.enabledProviders.insert(provider)
+        }
     }
 
     @objc func quit(_ sender: NSMenuItem) {
