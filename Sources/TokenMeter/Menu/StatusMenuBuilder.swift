@@ -103,7 +103,7 @@ final class StatusMenuBuilder: NSObject {
     private func menuBarMenu(buckets: [QuotaBucket]) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let current = settings.toolbarDisplayModelId.isEmpty ? "auto" : settings.toolbarDisplayModelId
+        let current = settings.toolbarDisplayModelId.isEmpty ? QuotaDisplay.defaultSelection : settings.toolbarDisplayModelId
 
         func option(_ title: String, id: String) -> NSMenuItem {
             let item = NSMenuItem(title: title, action: #selector(selectMenuBarItem(_:)), keyEquivalent: "")

@@ -14,6 +14,10 @@ final class SettingsManagerTests: XCTestCase {
         XCTAssertEqual(SettingsManager(defaults: defaults).lastUsedProvider, .claude)
     }
 
+    func testMenuBarChoiceStartsOnLatest() {
+        XCTAssertEqual(SettingsManager(defaults: freshDefaults()).toolbarDisplayModelId, "latest")
+    }
+
     func testEveryProviderIsEnabledUntilOneIsSwitchedOff() {
         let settings = SettingsManager(defaults: freshDefaults())
         XCTAssertEqual(settings.enabledProviders, Set(QuotaProvider.allCases))

@@ -82,6 +82,12 @@ final class StatusMenuBuilderTests: XCTestCase {
         XCTAssertEqual(show.items.map(\.state), [.off, .off, .off, .off, .off, .off, .on, .off, .off])
     }
 
+    func testEmptyMenuBarChoiceChecksLatest() throws {
+        settings.toolbarDisplayModelId = ""
+        let show = try XCTUnwrap(builder.makeMenu(buckets: sample, errorMessage: nil).items.first { $0.title == "Menu Bar" }?.submenu)
+        XCTAssertEqual(show.items.first { $0.state == .on }?.title, "Latest")
+    }
+
     func testMenuBarSubmenuOmitsPlaceholders() throws {
         let menu = builder.makeMenu(buckets: sample + [bucket("gemini-unavailable", name: "Gemini", reason: "Usage currently unavailable")], errorMessage: nil)
         let show = try XCTUnwrap(menu.items.first { $0.title == "Menu Bar" }?.submenu)

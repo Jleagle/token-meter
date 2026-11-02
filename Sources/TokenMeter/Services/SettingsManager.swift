@@ -26,7 +26,7 @@ class SettingsManager: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.toolbarDisplayModelId = defaults.string(forKey: "toolbarDisplayModelId") ?? "auto"
+        self.toolbarDisplayModelId = defaults.string(forKey: "toolbarDisplayModelId") ?? QuotaDisplay.defaultSelection
         self.usePaceMode = defaults.bool(forKey: "usePaceMode")
         self.lastUsedProvider = defaults.string(forKey: "lastUsedProvider").flatMap(QuotaProvider.init(rawValue:))
         self.enabledProviders = defaults.stringArray(forKey: "enabledProviders")

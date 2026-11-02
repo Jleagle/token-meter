@@ -53,7 +53,7 @@ final class QuotaDisplayTests: XCTestCase {
             bucket("official-codex-unavailable", remaining: 0, reason: "Not signed in"),
         ]
         XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "auto", paceMode: false)?.modelId, "official-claude-cli-5h")
-        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "", paceMode: false)?.modelId, "official-claude-cli-5h")
+        XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "", paceMode: false, lastUsedProvider: .gemini)?.modelId, "gemini-5h")
         XCTAssertEqual(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "gemini-5h", paceMode: false)?.modelId, "gemini-5h")
         XCTAssertNil(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "none", paceMode: false))
         XCTAssertNil(QuotaDisplay.menuBarBucket(buckets: buckets, selection: "official-codex-unavailable", paceMode: false))

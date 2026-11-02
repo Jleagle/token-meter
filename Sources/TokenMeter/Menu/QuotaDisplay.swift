@@ -33,11 +33,14 @@ enum QuotaDisplay {
         return "\(seconds)s"
     }
 
+    /// The menu bar choice a fresh install starts on.
+    static let defaultSelection = "latest"
+
     /// The window the menu bar shows. Nil shows the app icon alone. "auto" follows the window
     /// most at risk: least left, or burning fastest in burn-rate mode. "latest" applies the same
     /// rule to the provider that last consumed quota, or to every window until one has.
     static func menuBarBucket(buckets: [QuotaBucket], selection: String, paceMode: Bool, lastUsedProvider: QuotaProvider? = nil) -> QuotaBucket? {
-        let target = selection.isEmpty ? "auto" : selection
+        let target = selection.isEmpty ? defaultSelection : selection
         guard target != "none" else { return nil }
         let live = buckets.filter { $0.unavailableReason == nil }
         switch target {
