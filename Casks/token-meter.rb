@@ -18,6 +18,9 @@ cask "token-meter" do
     run "/usr/bin/xattr", args: ["-cr", "{{appdir}}/TokenMeter.app"]
   end
 
+  # Quits the running copy before the bundle is replaced; on an upgrade Homebrew reopens it afterwards
+  uninstall quit: "com.token.meter"
+
   zap trash: [
     "~/Library/Application Support/TokenMeter",
     "~/Library/Preferences/com.token.meter.plist",
