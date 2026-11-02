@@ -2,6 +2,14 @@
 
 macOS menu bar app for tracking AI usage and quotas (Gemini, Claude, OpenAI / Codex).
 
+## Installation
+
+```bash
+brew install --cask Jleagle/token-meter/token-meter
+```
+
+The cask lives in the [Jleagle/homebrew-token-meter](https://github.com/Jleagle/homebrew-token-meter) tap, which that command adds and trusts for you. Each release updates it automatically.
+
 ## Supported models
 
 Only plan/subscription accounts are supported — usage is read from the tools you are already logged into, so no API keys are needed.
@@ -17,14 +25,6 @@ Clicking the menu bar icon opens a menu with one line per quota window: the perc
 The Claude and Gemini marks in the menu are the Simple Icons versions (CC0); the marks belong to Anthropic and Google.
 
 A provider's section only appears when its tool is found on the machine. If the tool is installed but not signed in (or the session has expired), a greyed-out card is shown instead of live usage. The first refresh may show a Keychain permission prompt for the Claude Code credentials — choose "Always Allow" to silence it.
-
-## Installation
-
-```bash
-brew install --cask Jleagle/token-meter/token-meter
-```
-
-The cask lives in the [Jleagle/homebrew-token-meter](https://github.com/Jleagle/homebrew-token-meter) tap, which that command adds and trusts for you. Each release updates it automatically.
 
 ## Development
 
