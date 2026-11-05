@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   release:
-    name: Build, Release & Update Homebrew Cask
+    name: Brew release
     runs-on: macos-14 # Apple Silicon (M1/M2/M3) runner for native macOS compilation speed
 
     steps:
