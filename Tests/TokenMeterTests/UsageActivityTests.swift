@@ -15,33 +15,39 @@ final class UsageActivityTests: XCTestCase {
         )
     }
 
-    func testNamesTheProviderWhoseWindowDropped() {
+    func testNamesTheWindowThatDropped() {
         let before = [bucket("gemini-5h", remaining: 0.6), bucket("official-claude-cli-5h", remaining: 0.5)]
         let after = [bucket("gemini-5h", remaining: 0.6), bucket("official-claude-cli-5h", remaining: 0.45)]
-        XCTAssertEqual(UsageActivity.reducedProvider(from: before, to: after), .claude)
+        XCTAssertEqual(UsageActivity.reducedWindow(from: before, to: after), "official-claude-cli-5h")
+    }
+
+    func testAnExhaustedWindowIsNotTheOneInUse() {
+        let before = [bucket("gemini-pro", remaining: 0), bucket("gemini-flash", remaining: 0.7)]
+        let after = [bucket("gemini-pro", remaining: 0), bucket("gemini-flash", remaining: 0.65)]
+        XCTAssertEqual(UsageActivity.reducedWindow(from: before, to: after), "gemini-flash")
     }
 
     func testNothingDroppedGivesNil() {
         let before = [bucket("gemini-5h", remaining: 0.6), bucket("official-claude-cli-5h", remaining: 0.5)]
-        XCTAssertNil(UsageActivity.reducedProvider(from: before, to: before))
-        XCTAssertNil(UsageActivity.reducedProvider(from: [], to: before))
+        XCTAssertNil(UsageActivity.reducedWindow(from: before, to: before))
+        XCTAssertNil(UsageActivity.reducedWindow(from: [], to: before))
     }
 
     func testAWindowResettingIsNotUse() {
         let before = [bucket("official-claude-cli-5h", remaining: 0.2)]
         let after = [bucket("official-claude-cli-5h", remaining: 1.0)]
-        XCTAssertNil(UsageActivity.reducedProvider(from: before, to: after))
+        XCTAssertNil(UsageActivity.reducedWindow(from: before, to: after))
     }
 
     func testPlaceholdersAndNewWindowsAreIgnored() {
         let before = [bucket("official-claude-cli-5h", remaining: 0.5), bucket("official-codex-unavailable", remaining: nil, reason: "Not signed in")]
         let after = [bucket("official-claude-unavailable", remaining: nil, reason: "Session expired"), bucket("official-codex-cli-5h", remaining: 0.3)]
-        XCTAssertNil(UsageActivity.reducedProvider(from: before, to: after))
+        XCTAssertNil(UsageActivity.reducedWindow(from: before, to: after))
     }
 
-    func testTheLargerDropWinsWhenTwoProvidersWereUsed() {
+    func testTheLargerDropWinsWhenTwoWindowsWereUsed() {
         let before = [bucket("gemini-5h", remaining: 0.6), bucket("official-claude-cli-5h", remaining: 0.5)]
         let after = [bucket("gemini-5h", remaining: 0.4), bucket("official-claude-cli-5h", remaining: 0.45)]
-        XCTAssertEqual(UsageActivity.reducedProvider(from: before, to: after), .gemini)
+        XCTAssertEqual(UsageActivity.reducedWindow(from: before, to: after), "gemini-5h")
     }
 }

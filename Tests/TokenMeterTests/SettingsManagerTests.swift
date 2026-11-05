@@ -6,12 +6,12 @@ final class SettingsManagerTests: XCTestCase {
         UserDefaults(suiteName: "TokenMeterTests.\(UUID().uuidString)")!
     }
 
-    func testLastUsedProviderPersistsAcrossInstances() {
+    func testLastUsedWindowPersistsAcrossInstances() {
         let defaults = freshDefaults()
         let settings = SettingsManager(defaults: defaults)
-        XCTAssertNil(settings.lastUsedProvider)
-        settings.lastUsedProvider = .claude
-        XCTAssertEqual(SettingsManager(defaults: defaults).lastUsedProvider, .claude)
+        XCTAssertNil(settings.lastUsedModelId)
+        settings.lastUsedModelId = "official-claude-cli-5h"
+        XCTAssertEqual(SettingsManager(defaults: defaults).lastUsedModelId, "official-claude-cli-5h")
     }
 
     func testMenuBarChoiceStartsOnLatest() {

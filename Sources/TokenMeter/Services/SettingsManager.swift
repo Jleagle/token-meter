@@ -14,9 +14,9 @@ class SettingsManager: ObservableObject {
         didSet { defaults.set(usePaceMode, forKey: "usePaceMode") }
     }
 
-    /// The provider last seen consuming quota, which the menu bar's Latest choice follows.
-    @Published var lastUsedProvider: QuotaProvider? {
-        didSet { defaults.set(lastUsedProvider?.rawValue, forKey: "lastUsedProvider") }
+    /// The model id of the window last seen consuming quota, which the menu bar's Latest choice follows.
+    @Published var lastUsedModelId: String? {
+        didSet { defaults.set(lastUsedModelId, forKey: "lastUsedModelId") }
     }
 
     /// The providers shown in the menu and polled for usage.
@@ -28,7 +28,7 @@ class SettingsManager: ObservableObject {
         self.defaults = defaults
         self.toolbarDisplayModelId = defaults.string(forKey: "toolbarDisplayModelId") ?? QuotaDisplay.defaultSelection
         self.usePaceMode = defaults.bool(forKey: "usePaceMode")
-        self.lastUsedProvider = defaults.string(forKey: "lastUsedProvider").flatMap(QuotaProvider.init(rawValue:))
+        self.lastUsedModelId = defaults.string(forKey: "lastUsedModelId")
         self.enabledProviders = defaults.stringArray(forKey: "enabledProviders")
             .map { Set($0.compactMap(QuotaProvider.init(rawValue:))) }
             ?? Set(QuotaProvider.allCases)

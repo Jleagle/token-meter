@@ -23,7 +23,10 @@ enum QuotaProvider: String, CaseIterable {
     }
 
     static func of(_ bucket: QuotaBucket) -> QuotaProvider {
-        let id = bucket.modelId
+        of(modelId: bucket.modelId)
+    }
+
+    static func of(modelId id: String) -> QuotaProvider {
         if id.hasPrefix("official-claude") { return .claude }
         if id.hasPrefix("official-codex") || id.hasPrefix("official-openai") { return .codex }
         return .gemini

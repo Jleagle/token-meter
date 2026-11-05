@@ -37,9 +37,10 @@ enum QuotaDisplay {
     static let defaultSelection = "latest"
 
     /// The window the menu bar shows. Nil shows the app icon alone. "auto" follows the window
-    /// most at risk: least left, or burning fastest in burn-rate mode. "latest" applies the same
-    /// rule to the provider that last consumed quota, or to every window until one has.
-    static func menuBarBucket(buckets: [QuotaBucket], selection: String, paceMode: Bool, lastUsedProvider: QuotaProvider? = nil) -> QuotaBucket? {
+    /// most at risk: least left, or burning fastest in burn-rate mode. "latest" follows the window
+    /// that last consumed quota; while that window is not live it applies the "auto" rule to its
+    /// provider's windows, or to every window until one has consumed quota.
+    static func menuBarBucket(buckets: [QuotaBucket], selection: String, paceMode: Bool, lastUsedModelId: String? = nil) -> QuotaBucket? {
         let target = selection.isEmpty ? defaultSelection : selection
         guard target != "none" else { return nil }
         let live = buckets.filter { $0.unavailableReason == nil }
@@ -47,8 +48,11 @@ enum QuotaDisplay {
         case "auto":
             return mostAtRisk(live, paceMode: paceMode)
         case "latest":
-            let used = live.filter { QuotaProvider.of($0) == lastUsedProvider }
-            return mostAtRisk(used.isEmpty ? live : used, paceMode: paceMode)
+            guard let lastUsedModelId else { return mostAtRisk(live, paceMode: paceMode) }
+            if let window = live.first(where: { $0.modelId == lastUsedModelId }) { return window }
+            let provider = QuotaProvider.of(modelId: lastUsedModelId)
+            let siblings = live.filter { QuotaProvider.of($0) == provider }
+            return mostAtRisk(siblings.isEmpty ? live : siblings, paceMode: paceMode)
         default:
             return live.first(where: { $0.modelId == target })
         }

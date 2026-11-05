@@ -22,7 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.menu = menu
         statusItem.button?.image = appIcon
 
-        Publishers.CombineLatest4(QuotaService.shared.$buckets, SettingsManager.shared.$toolbarDisplayModelId, SettingsManager.shared.$usePaceMode, SettingsManager.shared.$lastUsedProvider)
+        Publishers.CombineLatest4(QuotaService.shared.$buckets, SettingsManager.shared.$toolbarDisplayModelId, SettingsManager.shared.$usePaceMode, SettingsManager.shared.$lastUsedModelId)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] (buckets, displayModelId, _, _) in
                 self?.updateMenuBarDisplay(buckets: buckets, displayModelId: displayModelId)
@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateMenuBarDisplay(buckets: [QuotaBucket], displayModelId: String) {
         guard let button = statusItem.button else { return }
         let settings = SettingsManager.shared
-        guard let bucket = QuotaDisplay.menuBarBucket(buckets: buckets, selection: displayModelId, paceMode: settings.usePaceMode, lastUsedProvider: settings.lastUsedProvider) else {
+        guard let bucket = QuotaDisplay.menuBarBucket(buckets: buckets, selection: displayModelId, paceMode: settings.usePaceMode, lastUsedModelId: settings.lastUsedModelId) else {
             showIconOnly(button)
             return
         }

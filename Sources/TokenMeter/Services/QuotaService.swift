@@ -80,13 +80,13 @@ class QuotaService: ObservableObject {
         if combined.isEmpty {
             errorMessage = "No usage sources found. Sign in to Antigravity, Claude Code or the Codex CLI."
         } else {
-            let used = UsageActivity.reducedProvider(from: buckets, to: combined)
+            let used = UsageActivity.reducedWindow(from: buckets, to: combined)
             buckets = combined
             lastUpdated = Date()
             autoRefreshRemaining = QuotaService.pollIntervalSeconds
             if let used {
-                Diagnostics.log("last used: \(used.name)")
-                SettingsManager.shared.lastUsedProvider = used
+                Diagnostics.log("last used: \(used)")
+                SettingsManager.shared.lastUsedModelId = used
             }
         }
     }
