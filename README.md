@@ -10,15 +10,7 @@ brew install --cask Jleagle/token-meter/token-meter
 
 The cask lives in the [Jleagle/homebrew-token-meter](https://github.com/Jleagle/homebrew-token-meter) tap, which that command adds and trusts for you. Each release updates it automatically.
 
-## Supported models
-
-Only plan/subscription accounts are supported — usage is read from the tools you are already logged into, so no API keys are needed.
-
-| Provider | What is shown | How usage is fetched |
-|---|---|---|
-| Gemini | Antigravity's Gemini quota and its Claude & GPT quota (Claude Opus, Claude Sonnet, GPT-OSS), each with 5-hour and weekly windows, plus the Gemini 4 Argon weekly quota when your plan has one | Asks the Antigravity language server while the app or `agy` is running. When neither is running, it uses the Google login Antigravity keeps in the macOS Keychain to query Google's Cloud Code API, refreshing the login when it has expired. |
-| Claude (Pro / Max / Team / Enterprise) | 5-hour and weekly limits for your plan, plus any model-scoped weekly limit it reports (e.g. Fable) | Uses your Claude Code login (macOS Keychain, or `~/.claude/.credentials.json`) to query Anthropic's OAuth usage endpoint. An expired session is refreshed and the new token written back, so Claude Code keeps working without signing in again. When Anthropic rate-limits the endpoint, the last values stay on screen with a note until the retry time. |
-| Codex / OpenAI (Plus / Pro) | 5-hour limit (lowest of the plan's rate-limit windows) | Uses your Codex CLI login (`~/.codex/auth.json`) to query the ChatGPT usage endpoint. Requires being logged into the Codex CLI. |
+## Usage
 
 Clicking the menu bar icon opens a menu with one line per quota window: the percent left, a bar, and when the window resets. At the bottom, the Settings submenu has "Show Burn Rate Instead" (how fast the window is being used, in place of the percent left) and the Menu Bar submenu picks which window's number appears in the menu bar: Lowest follows the window with the least left (or burning fastest, in burn-rate mode), Latest (the default) follows the window that most recently used quota, a named window pins that one, and None shows the app icon alone. The mark beside the number is the provider it belongs to. The Providers submenu has a check per provider: unchecking one removes its section and stops polling that tool until it is checked again.
 
