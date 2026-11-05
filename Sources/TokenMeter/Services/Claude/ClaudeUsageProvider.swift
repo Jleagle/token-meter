@@ -55,6 +55,7 @@ final class ClaudeUsageProvider {
 
     func fetch() async -> [QuotaBucket] {
         guard var document = await store.load() else {
+            Diagnostics.log("claude: no credentials in keychain or ~/.claude/.credentials.json")
             lastGood = []
             lastFetch = nil
             return installed() ? [placeholder("Not signed in to Claude Code")] : []
@@ -70,6 +71,8 @@ final class ClaudeUsageProvider {
             }
         }
         let now = self.now()
+        let expiry = document.expiresAt.map { "\(Int($0.timeIntervalSince(now) / 60))m" } ?? "unknown"
+        Diagnostics.log("claude: credentials found (plan: \(document.subscriptionType ?? "none"), scopes: \(document.scopes), refresh token: \(document.refreshToken != nil), expires in: \(expiry))")
         if let last = lastFetch, now.timeIntervalSince(last) < Self.minimumInterval, !lastGood.isEmpty {
             return lastGood
         }
@@ -128,7 +131,11 @@ final class ClaudeUsageProvider {
         request.timeoutInterval = 10
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         Self.applyClientHeaders(to: &request)
-        guard let (data, http) = try? await transport.send(request) else { return .failed }
+        guard let (data, http) = try? await transport.send(request) else {
+            Diagnostics.log("claude: usage request failed to send")
+            return .failed
+        }
+        Diagnostics.log("claude: usage answered \(http.statusCode)\(http.statusCode >= 400 ? " \(String(decoding: data.prefix(300), as: UTF8.self))" : "")")
         switch http.statusCode {
         case 200...299: return .ok(data)
         case 401, 403: return .unauthorized
@@ -144,7 +151,10 @@ final class ClaudeUsageProvider {
     }
 
     private func refresh(_ document: ClaudeCredentialDocument) async -> RefreshOutcome {
-        guard let refreshToken = document.refreshToken else { return .rejected }
+        guard let refreshToken = document.refreshToken else {
+            Diagnostics.log("claude: token needs refreshing but there is no refresh token")
+            return .rejected
+        }
         var body: [String: Any] = [
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
@@ -159,7 +169,11 @@ final class ClaudeUsageProvider {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         Self.applyClientHeaders(to: &request)
 
-        guard let (data, http) = try? await transport.send(request) else { return .unavailable }
+        guard let (data, http) = try? await transport.send(request) else {
+            Diagnostics.log("claude: token refresh failed to send")
+            return .unavailable
+        }
+        Diagnostics.log("claude: token refresh answered \(http.statusCode)\(http.statusCode >= 400 ? " \(String(decoding: data.prefix(300), as: UTF8.self))" : "")")
         switch http.statusCode {
         case 200...299:
             guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
