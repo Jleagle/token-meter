@@ -49,9 +49,18 @@ enum QuotaDisplay {
             return mostAtRisk(live, paceMode: paceMode)
         case "latest":
             guard let lastUsedModelId else { return mostAtRisk(live, paceMode: paceMode) }
-            if let window = live.first(where: { $0.modelId == lastUsedModelId }) { return window }
+            if let window = live.first(where: { $0.modelId == lastUsedModelId }), window.usedPercentage > 0 {
+                return window
+            }
             let provider = QuotaProvider.of(modelId: lastUsedModelId)
             let siblings = live.filter { QuotaProvider.of($0) == provider }
+            let activeSiblings = siblings.filter { $0.usedPercentage > 0 }
+            if !activeSiblings.isEmpty {
+                return mostAtRisk(activeSiblings, paceMode: paceMode)
+            }
+            if let window = live.first(where: { $0.modelId == lastUsedModelId }) {
+                return window
+            }
             return mostAtRisk(siblings.isEmpty ? live : siblings, paceMode: paceMode)
         default:
             return live.first(where: { $0.modelId == target })

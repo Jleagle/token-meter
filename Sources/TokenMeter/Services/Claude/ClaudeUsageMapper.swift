@@ -43,7 +43,7 @@ enum ClaudeUsageMapper {
 
     private static func bucket(id: String, name: String, type: String, utilization: Double, resetsAt: Any?) -> QuotaBucket {
         QuotaBucket(
-            resetTime: resetTime(resetsAt),
+            resetTime: resetTime(resetsAt, type: type),
             tokenType: type,
             modelId: id,
             remainingFraction: max(0.0, min(1.0, (100.0 - utilization) / 100.0)),
@@ -54,11 +54,14 @@ enum ClaudeUsageMapper {
     }
 
     /// Reset times arrive as ISO 8601 strings on the windows and as epoch seconds on scoped limits.
-    private static func resetTime(_ value: Any?) -> String? {
+    private static func resetTime(_ value: Any?, type: String? = nil) -> String? {
         if let text = value as? String, !text.isEmpty { return text }
         if let number = (value as? NSNumber)?.doubleValue, number.isFinite, number > 0 {
             let seconds = number > 1e11 ? number / 1000 : number
             return ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: seconds))
+        }
+        if type == "5h" {
+            return QuotaBucket.calculateFiveHourResetTime()
         }
         return nil
     }

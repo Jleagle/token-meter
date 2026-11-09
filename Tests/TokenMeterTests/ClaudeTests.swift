@@ -30,7 +30,7 @@ final class ClaudeUsageMapperTests: XCTestCase {
         XCTAssertEqual(buckets[2].tokenType, "weekly")
         XCTAssertEqual(try XCTUnwrap(buckets[2].resetDate).timeIntervalSince1970, 1761782400, accuracy: 0.5)
         XCTAssertEqual(buckets[3].displayName, "Claude - Sonnet Weekly")
-        XCTAssertNil(buckets[0].resetDate)
+        XCTAssertNotNil(buckets[0].resetDate)
     }
 
     func testScopedSonnetLimitAndSonnetWindowProduceOneBucket() {

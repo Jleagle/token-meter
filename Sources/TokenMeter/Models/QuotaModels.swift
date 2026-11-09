@@ -159,6 +159,29 @@ struct QuotaBucket: Codable, Identifiable {
     var resetDate: Date? {
         resetTime.flatMap(ISO8601.date(from:))
     }
+
+    static func calculateFiveHourResetTime(now: Date = Date()) -> String {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day, .hour], from: now)
+        let currentHour = components.hour ?? 0
+        let nextBlockHour = ((currentHour / 5) + 1) * 5
+
+        if nextBlockHour >= 24 {
+            components.day = (components.day ?? 0) + 1
+            components.hour = nextBlockHour - 24
+        } else {
+            components.hour = nextBlockHour
+        }
+        components.minute = 0
+        components.second = 0
+
+        if let nextDate = calendar.date(from: components) {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return formatter.string(from: nextDate)
+        }
+        return ""
+    }
 }
 
 // MARK: - Summary Quota Models

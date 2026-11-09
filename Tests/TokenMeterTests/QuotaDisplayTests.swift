@@ -83,4 +83,15 @@ final class QuotaDisplayTests: XCTestCase {
         XCTAssertEqual(latest(nil), "gemini-pro")
         XCTAssertEqual(latest("official-codex-cli-5h"), "gemini-pro")
     }
+
+    func testMenuBarBucketLatestFollowsActiveSiblingWhenLastUsedWindowHasReset() {
+        let buckets = [
+            bucket("official-claude-cli-5h", remaining: 1.0, resetIn: 4 * 3600),
+            bucket("official-claude-weekly", remaining: 0.95, resetIn: 3 * 86400),
+            bucket("official-claude-weekly-fable", remaining: 0.90, resetIn: 3 * 86400),
+        ]
+        // 5h model has reset to 100% remaining; latest falls back to the sibling with usage
+        let chosen = QuotaDisplay.menuBarBucket(buckets: buckets, selection: "latest", paceMode: true, lastUsedModelId: "official-claude-cli-5h")
+        XCTAssertEqual(chosen?.modelId, "official-claude-weekly-fable")
+    }
 }
