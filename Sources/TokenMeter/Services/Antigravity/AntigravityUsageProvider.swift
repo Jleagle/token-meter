@@ -15,8 +15,8 @@ final class AntigravityUsageProvider {
     static let languageServerService = "exa.language_server_pb.LanguageServerService"
     static let summaryMethod = "RetrieveUserQuotaSummary"
     static let cloudCodeHosts = [
-        "https://cloudcode-pa.googleapis.com",
         "https://daily-cloudcode-pa.googleapis.com",
+        "https://cloudcode-pa.googleapis.com",
     ]
     static let summaryPath = "/v1internal:retrieveUserQuotaSummary"
     static let googleTokenURL = URL(string: "https://oauth2.googleapis.com/token")!
@@ -194,8 +194,9 @@ final class AntigravityUsageProvider {
         case unavailable
     }
 
-    /// Asks production first and stops there when its answer carries every pooled bucket; a host
-    /// can omit a whole pool, so an incomplete answer is merged with the daily one.
+    /// Asks the primary Antigravity host (daily-cloudcode-pa) first and stops there when its
+    /// answer carries every pooled bucket; a host can omit a whole pool, so an incomplete answer
+    /// is merged with the fallback host.
     private func fetchSummary(token: String) async -> SummaryOutcome {
         var bodies: [Data] = []
         var authFailed = false

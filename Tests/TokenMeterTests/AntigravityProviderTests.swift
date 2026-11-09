@@ -18,8 +18,8 @@ final class AntigravityUsageProviderTests: XCTestCase {
     {"groups":[{"displayName":"Gemini models","buckets":[
       {"bucketId":"gemini-5h","window":"5h","remainingFraction":0.8}]}]}
     """
-    private let summaryURL = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
-    private let dailySummaryURL = "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
+    private let primarySummaryURL = "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
+    private let fallbackSummaryURL = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
 
     private func token(expired: Bool = false, refresh: String? = "rt") -> AntigravityKeychainToken {
         AntigravityKeychainToken(accessToken: "at", refreshToken: refresh, expiry: Date().addingTimeInterval(expired ? -60 : 3600))
@@ -77,7 +77,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         XCTAssertEqual(buckets.map(\.modelId), allIDs)
         XCTAssertEqual(cloud.requests.count, 1)
         let request = cloud.requests[0]
-        XCTAssertEqual(request.url?.absoluteString, summaryURL)
+        XCTAssertEqual(request.url?.absoluteString, primarySummaryURL)
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer at")
         // Google leaves the Gemini pool out of the summary unless the caller presents the
@@ -88,7 +88,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
         XCTAssertEqual(request.httpBody, Data("{}".utf8))
     }
 
-    func testAsksDailyHostWhenProductionAnswerIsIncomplete() async {
+    func testAsksFallbackHostWhenPrimaryAnswerIsIncomplete() async {
         let cloud = StubTransport(responses: [
             .init(status: 200, body: partialSummary),
             .init(status: 200, body: summary),
@@ -97,7 +97,7 @@ final class AntigravityUsageProviderTests: XCTestCase {
 
         let buckets = await provider.fetch()
         XCTAssertEqual(buckets.map(\.modelId), allIDs)
-        XCTAssertEqual(cloud.requests.map { $0.url!.absoluteString }, [summaryURL, dailySummaryURL])
+        XCTAssertEqual(cloud.requests.map { $0.url!.absoluteString }, [primarySummaryURL, fallbackSummaryURL])
     }
 
     func testRefreshesExpiredGoogleTokenAndReusesIt() async throws {
