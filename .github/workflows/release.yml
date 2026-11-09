@@ -12,7 +12,7 @@ permissions:
 jobs:
   release:
     name: Brew release
-    runs-on: macos-14 # Apple Silicon (M1/M2/M3) runner for native macOS compilation speed
+    runs-on: macos-15 # Apple Silicon runner for native macOS compilation speed
 
     steps:
       - name: Checkout Repository
