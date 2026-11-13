@@ -17,6 +17,9 @@ struct QuotaBucket: Codable, Identifiable {
     // Set when the card shows the last good values because the provider is
     // currently rate limiting us
     var staleNote: String? = nil
+    // When these values were read from the provider; burn rate is worked out at this
+    // instant, so it holds until the next poll brings a fresh card
+    var measuredAt: Date = Date()
 
     var id: String { modelId }
     
@@ -97,12 +100,13 @@ struct QuotaBucket: Codable, Identifiable {
         }
     }
 
-    // Burn rate: quota used relative to how much of the window has elapsed.
-    // 100 = using quota exactly as fast as the window refills, 200 = twice
-    // too fast, 50 = half pace. Nil when the window timing is unknown.
+    // Burn rate: quota used relative to how much of the window had elapsed when
+    // the card was measured. 100 = using quota exactly as fast as the window
+    // refills, 200 = twice too fast, 50 = half pace. Nil when the window timing
+    // is unknown.
     var pacePercentage: Int? {
         guard let duration = windowDuration, let reset = resetDate else { return nil }
-        let remainingTime = reset.timeIntervalSinceNow
+        let remainingTime = reset.timeIntervalSince(measuredAt)
         guard remainingTime > 0, remainingTime <= duration else { return nil }
         let elapsedFraction = max(0.01, 1.0 - (remainingTime / duration))
         let usedFraction = 1.0 - (remainingFraction ?? Double(remainingPercentage) / 100.0)

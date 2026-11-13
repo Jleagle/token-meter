@@ -26,6 +26,21 @@ final class QuotaDisplayTests: XCTestCase {
         XCTAssertEqual(QuotaDisplay.percentText(for: bucket(remaining: 0.25, resetIn: 2.5 * 3600), paceMode: true), "150%")
     }
 
+    func testBurnRateHoldsAtTheInstantTheWindowWasMeasured() {
+        // Measured halfway through a 5-hour window whose reset has long since passed
+        let measured = Date(timeIntervalSince1970: 1_700_000_000)
+        let window = QuotaBucket(
+            resetTime: ISO8601DateFormatter().string(from: measured.addingTimeInterval(2.5 * 3600)),
+            tokenType: "5h",
+            modelId: "official-claude-cli-5h",
+            remainingFraction: 0.25,
+            remainingAmount: nil,
+            maxAmount: nil,
+            measuredAt: measured
+        )
+        XCTAssertEqual(QuotaDisplay.percentText(for: window, paceMode: true), "150%")
+    }
+
     func testResetTextShowsCountdownAndShareOfWindowLeft() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         func reset(_ type: String?, in interval: TimeInterval?) -> QuotaBucket {

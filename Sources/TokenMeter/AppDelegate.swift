@@ -28,16 +28,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.updateMenuBarDisplay(buckets: buckets, displayModelId: displayModelId)
             }
             .store(in: &cancellables)
-
-        // Burn rate moves with the clock, so while that mode is on the menu bar number is
-        // recomputed every second, in step with the rows
-        Timer.publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard SettingsManager.shared.usePaceMode else { return }
-                self?.updateMenuBarDisplay(buckets: QuotaService.shared.buckets, displayModelId: SettingsManager.shared.toolbarDisplayModelId)
-            }
-            .store(in: &cancellables)
     }
 
     // The menu is rebuilt from the latest data each time it is about to open
